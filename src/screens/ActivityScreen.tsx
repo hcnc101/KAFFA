@@ -1,6 +1,12 @@
-import React from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
-import { Text, Avatar, Icon, Divider } from "@rneui/themed";
+import React, { useState } from "react";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  RefreshControl,
+} from "react-native";
+import { Text, Avatar, Icon, Tab, TabView } from "@rneui/themed";
 
 const theme = {
   primary: "#8B4513",
@@ -11,113 +17,180 @@ const theme = {
   textLight: "#666666",
 };
 
+interface Activity {
+  id: number;
+  type: "like" | "comment" | "follow" | "mention";
+  user: {
+    name: string;
+    avatar: string;
+  };
+  time: string;
+  content?: string;
+  postImage?: string;
+}
+
 const ActivityScreen = () => {
-  const activities = [
+  const [index, setIndex] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const activities: Activity[] = [
     {
+      id: 1,
       type: "like",
-      user: "Sarah Chen",
-      action: "liked your review of Ethiopian Yirgacheffe",
+      user: {
+        name: "Coffee Lover",
+        avatar: "https://randomuser.me/api/portraits/women/1.jpg",
+      },
       time: "2m ago",
-      avatar: "https://randomuser.me/api/portraits/women/1.jpg",
+      postImage: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085",
     },
     {
-      type: "follow",
-      user: "Mike Johnson",
-      action: "started following you",
-      time: "15m ago",
-      avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    },
-    {
+      id: 2,
       type: "comment",
-      user: "Emma Wilson",
-      action: "commented on your Colombian Dark Roast review",
-      time: "1h ago",
-      avatar: "https://randomuser.me/api/portraits/women/2.jpg",
+      user: {
+        name: "Barista Pro",
+        avatar: "https://randomuser.me/api/portraits/men/1.jpg",
+      },
+      time: "5m ago",
+      content: "This looks amazing! What grinder did you use?",
+      postImage: "https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb",
     },
     {
+      id: 3,
+      type: "follow",
+      user: {
+        name: "Coffee Bean",
+        avatar: "https://randomuser.me/api/portraits/women/2.jpg",
+      },
+      time: "15m ago",
+    },
+    {
+      id: 4,
       type: "mention",
-      user: "James Brown",
-      action: "mentioned you in a review",
-      time: "2h ago",
-      avatar: "https://randomuser.me/api/portraits/men/2.jpg",
+      user: {
+        name: "Espresso Expert",
+        avatar: "https://randomuser.me/api/portraits/men/2.jpg",
+      },
+      time: "1h ago",
+      content: "Hey @you, check out this amazing Ethiopian blend!",
+      postImage: "https://images.unsplash.com/photo-1587734361993-0275024cb0b4",
     },
   ];
 
-  const getActivityIcon = (type: string) => {
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    // Simulate data fetching
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  }, []);
+
+  const renderActivityIcon = (type: Activity["type"]) => {
     switch (type) {
       case "like":
-        return { name: "favorite", color: "#E91E63" };
-      case "follow":
-        return { name: "person-add", color: "#2196F3" };
+        return <Icon name="favorite" color="#E91E63" size={24} />;
       case "comment":
-        return { name: "chat-bubble", color: "#4CAF50" };
+        return <Icon name="chat-bubble" color="#2196F3" size={24} />;
+      case "follow":
+        return <Icon name="person-add" color="#4CAF50" size={24} />;
       case "mention":
-        return { name: "alternate-email", color: "#FF9800" };
+        return <Icon name="alternate-email" color="#FF9800" size={24} />;
       default:
-        return { name: "notifications", color: theme.primary };
+        return null;
     }
   };
 
-  return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text h4 style={styles.headerTitle}>
-          Activity
-        </Text>
-      </View>
+  const renderActivityText = (activity: Activity) => {
+    switch (activity.type) {
+      case "like":
+        return "liked your post";
+      case "comment":
+        return "commented on your post";
+      case "follow":
+        return "started following you";
+      case "mention":
+        return "mentioned you in a comment";
+      default:
+        return "";
+    }
+  };
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Today</Text>
-        {activities.map((activity, index) => (
-          <React.Fragment key={index}>
-            <View style={styles.activityItem}>
-              <Avatar
-                size={50}
-                rounded
-                source={{ uri: activity.avatar }}
-                containerStyle={styles.avatar}
-              />
-              <View style={styles.activityContent}>
-                <View style={styles.activityHeader}>
-                  <Text style={styles.username}>{activity.user}</Text>
-                  <Text style={styles.time}>{activity.time}</Text>
-                </View>
-                <Text style={styles.action}>{activity.action}</Text>
-              </View>
-              <Icon
-                name={getActivityIcon(activity.type).name}
-                type="material"
-                color={getActivityIcon(activity.type).color}
-                size={24}
-              />
-            </View>
-            {index < activities.length - 1 && (
-              <Divider style={styles.divider} />
-            )}
-          </React.Fragment>
-        ))}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>This Week</Text>
-        <View style={styles.activityItem}>
-          <Avatar
-            size={50}
-            rounded
-            source={{ uri: "https://randomuser.me/api/portraits/men/3.jpg" }}
-            containerStyle={styles.avatar}
-          />
-          <View style={styles.activityContent}>
-            <View style={styles.activityHeader}>
-              <Text style={styles.username}>David Lee</Text>
-              <Text style={styles.time}>2d ago</Text>
-            </View>
-            <Text style={styles.action}>liked your profile</Text>
+  const renderActivity = (activity: Activity) => (
+    <TouchableOpacity key={activity.id} style={styles.activityItem}>
+      <View style={styles.activityLeft}>
+        <Avatar size={50} rounded source={{ uri: activity.user.avatar }} />
+        <View style={styles.activityContent}>
+          <View style={styles.activityHeader}>
+            <Text style={styles.username}>{activity.user.name}</Text>
+            <Text style={styles.activityText}>
+              {renderActivityText(activity)}
+            </Text>
           </View>
-          <Icon name="favorite" type="material" color="#E91E63" size={24} />
+          {activity.content && (
+            <Text style={styles.comment} numberOfLines={2}>
+              {activity.content}
+            </Text>
+          )}
+          <Text style={styles.time}>{activity.time}</Text>
         </View>
       </View>
-    </ScrollView>
+      <View style={styles.activityRight}>
+        {renderActivityIcon(activity.type)}
+        {activity.postImage && (
+          <Avatar
+            size={50}
+            source={{ uri: activity.postImage }}
+            containerStyle={styles.postImage}
+          />
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <View style={styles.container}>
+      <Tab
+        value={index}
+        onChange={setIndex}
+        indicatorStyle={styles.tabIndicator}
+        variant="primary"
+      >
+        <Tab.Item
+          title="All Activity"
+          titleStyle={styles.tabTitle}
+          containerStyle={styles.tabContainer}
+        />
+        <Tab.Item
+          title="Mentions"
+          titleStyle={styles.tabTitle}
+          containerStyle={styles.tabContainer}
+        />
+      </Tab>
+
+      <TabView value={index} onChange={setIndex} animationType="spring">
+        <TabView.Item style={styles.tabViewItem}>
+          <ScrollView
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          >
+            {activities.map(renderActivity)}
+          </ScrollView>
+        </TabView.Item>
+
+        <TabView.Item style={styles.tabViewItem}>
+          <ScrollView
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          >
+            {activities
+              .filter((activity) => activity.type === "mention")
+              .map(renderActivity)}
+          </ScrollView>
+        </TabView.Item>
+      </TabView>
+    </View>
   );
 };
 
@@ -126,59 +199,64 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.background,
   },
-  header: {
-    padding: 15,
+  tabContainer: {
     backgroundColor: theme.background,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
   },
-  headerTitle: {
+  tabIndicator: {
+    backgroundColor: theme.primary,
+    height: 3,
+  },
+  tabTitle: {
     color: theme.text,
-    fontSize: 24,
-  },
-  section: {
-    marginTop: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
-    color: theme.textLight,
-    marginBottom: 15,
-    paddingHorizontal: 15,
+  },
+  tabViewItem: {
+    width: "100%",
   },
   activityItem: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 15,
+    justifyContent: "space-between",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
   },
-  avatar: {
-    marginRight: 15,
+  activityLeft: {
+    flex: 1,
+    flexDirection: "row",
   },
   activityContent: {
     flex: 1,
+    marginLeft: 12,
   },
   activityHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
+    flexWrap: "wrap",
   },
   username: {
     fontWeight: "bold",
-    fontSize: 16,
+    marginRight: 5,
     color: theme.text,
   },
-  action: {
+  activityText: {
+    color: theme.text,
+  },
+  comment: {
+    marginTop: 4,
     color: theme.textLight,
-    fontSize: 14,
   },
   time: {
-    color: theme.textLight,
+    marginTop: 4,
     fontSize: 12,
+    color: theme.textLight,
   },
-  divider: {
-    marginLeft: 80,
+  activityRight: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 12,
+  },
+  postImage: {
+    marginTop: 8,
   },
 });
 
