@@ -12,17 +12,33 @@ import { Text, Card, Button, Icon, Image, Divider } from "@rneui/themed";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
+// Theme colors
+const theme = {
+  primary: "#6F4E37", // Coffee brown
+  secondary: "#C4A484", // Lighter brown
+  background: "#FFFFFF",
+  surface: "#F5F5F5",
+  accent: "#D4AF37", // Gold
+  text: "#333333",
+  textLight: "#666666",
+};
+
 const HomeScreen = () => {
   return (
     <ScrollView style={styles.container}>
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Icon name="search" type="material" size={20} color="#666" />
+          <Icon
+            name="search"
+            type="material"
+            size={20}
+            color={theme.textLight}
+          />
           <TextInput
             placeholder="Search any coffee..."
             style={styles.searchInput}
-            placeholderTextColor="#666"
+            placeholderTextColor={theme.textLight}
           />
         </View>
       </View>
@@ -51,49 +67,36 @@ const HomeScreen = () => {
       {/* Coffee Categories */}
       <Text style={styles.sectionTitle}>Shop coffee by type</Text>
       <View style={styles.categoriesGrid}>
-        <TouchableOpacity style={styles.categoryCard}>
-          <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-1610889556528-9a770e32642f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-            }}
-            style={styles.categoryImage}
-          />
-          <Text style={styles.categoryText}>Light Roast</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.categoryCard}>
-          <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-1610889556528-9a770e32642f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-            }}
-            style={styles.categoryImage}
-          />
-          <Text style={styles.categoryText}>Medium Roast</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.categoryCard}>
-          <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-1610889556528-9a770e32642f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-            }}
-            style={styles.categoryImage}
-          />
-          <Text style={styles.categoryText}>Dark Roast</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.categoryCard}>
-          <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-1610889556528-9a770e32642f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-            }}
-            style={styles.categoryImage}
-          />
-          <Text style={styles.categoryText}>Espresso</Text>
-        </TouchableOpacity>
+        {["Light Roast", "Medium Roast", "Dark Roast", "Espresso"].map(
+          (category) => (
+            <TouchableOpacity key={category} style={styles.categoryCard}>
+              <Image
+                source={{
+                  uri: "https://images.unsplash.com/photo-1610889556528-9a770e32642f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+                }}
+                style={styles.categoryImage}
+              />
+              <Text style={styles.categoryText}>{category}</Text>
+            </TouchableOpacity>
+          )
+        )}
       </View>
 
       {/* Best Offers */}
       <TouchableOpacity style={styles.offersCard}>
-        <Icon name="local-offer" type="material" color="#6F4E37" size={24} />
+        <Icon
+          name="local-offer"
+          type="material"
+          color={theme.primary}
+          size={24}
+        />
         <Text style={styles.offersText}>Shop our best offers</Text>
-        <Icon name="chevron-right" type="material" color="#6F4E37" size={24} />
+        <Icon
+          name="chevron-right"
+          type="material"
+          color={theme.primary}
+          size={24}
+        />
       </TouchableOpacity>
 
       {/* Coffee Origins */}
@@ -103,45 +106,50 @@ const HomeScreen = () => {
         showsHorizontalScrollIndicator={false}
         style={styles.originsContainer}
       >
-        <TouchableOpacity style={styles.originCard}>
-          <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-150004575050-6dbc0df9e5f7?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-            }}
-            style={styles.originImage}
-          />
-          <Text style={styles.originName}>Ethiopia</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.originCard}>
-          <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-            }}
-            style={styles.originImage}
-          />
-          <Text style={styles.originName}>Colombia</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.originCard}>
-          <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-1542478050-9c2d0e17b723?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-            }}
-            style={styles.originImage}
-          />
-          <Text style={styles.originName}>Brazil</Text>
-        </TouchableOpacity>
+        {[
+          {
+            name: "Ethiopia",
+            image:
+              "https://images.unsplash.com/photo-150004575050-6dbc0df9e5f7?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+          },
+          {
+            name: "Colombia",
+            image:
+              "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+          },
+          {
+            name: "Brazil",
+            image:
+              "https://images.unsplash.com/photo-1542478050-9c2d0e17b723?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+          },
+        ].map((origin) => (
+          <TouchableOpacity key={origin.name} style={styles.originCard}>
+            <Image
+              source={{
+                uri: origin.image,
+              }}
+              style={styles.originImage}
+            />
+            <Text style={styles.originName}>{origin.name}</Text>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
 
       {/* View Map Button */}
       <TouchableOpacity style={styles.mapCard}>
-        <Icon name="map" type="material" color="#6F4E37" size={24} />
+        <Icon name="map" type="material" color={theme.primary} size={24} />
         <View style={styles.mapTextContainer}>
           <Text style={styles.mapTitle}>View Map</Text>
           <Text style={styles.mapSubtitle}>
             Find roasters and cafes near you
           </Text>
         </View>
-        <Icon name="chevron-right" type="material" color="#6F4E37" size={24} />
+        <Icon
+          name="chevron-right"
+          type="material"
+          color={theme.primary}
+          size={24}
+        />
       </TouchableOpacity>
     </ScrollView>
   );
@@ -150,29 +158,37 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: theme.surface,
   },
   searchContainer: {
     padding: 15,
-    backgroundColor: "white",
+    backgroundColor: theme.background,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: theme.surface,
+    borderRadius: 12,
+    padding: 12,
   },
   searchInput: {
     marginLeft: 10,
     flex: 1,
     fontSize: 16,
+    color: theme.text,
   },
   newFeatureCard: {
     margin: 15,
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: theme.background,
+    borderRadius: 16,
     overflow: "hidden",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   newFeatureContent: {
     flexDirection: "row",
@@ -188,7 +204,7 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   newTag: {
-    backgroundColor: "#FFD700",
+    backgroundColor: theme.accent,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -196,18 +212,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   newTagText: {
-    color: "#000",
+    color: theme.background,
     fontWeight: "bold",
     fontSize: 12,
   },
   newFeatureTitle: {
     fontSize: 16,
     fontWeight: "bold",
+    color: theme.text,
     marginBottom: 4,
   },
   newFeatureSubtitle: {
     fontSize: 14,
-    color: "#666",
+    color: theme.textLight,
   },
   sectionTitle: {
     fontSize: 20,
@@ -215,7 +232,7 @@ const styles = StyleSheet.create({
     marginLeft: 15,
     marginTop: 20,
     marginBottom: 15,
-    color: "#000",
+    color: theme.text,
   },
   categoriesGrid: {
     flexDirection: "row",
@@ -226,9 +243,14 @@ const styles = StyleSheet.create({
     width: (SCREEN_WIDTH - 45) / 2,
     height: 120,
     margin: 7.5,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#fff",
+    backgroundColor: theme.background,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   categoryImage: {
     width: "100%",
@@ -236,7 +258,7 @@ const styles = StyleSheet.create({
     position: "absolute",
   },
   categoryText: {
-    color: "#fff",
+    color: theme.background,
     fontSize: 18,
     fontWeight: "bold",
     padding: 15,
@@ -246,17 +268,22 @@ const styles = StyleSheet.create({
   offersCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFE4E1",
+    backgroundColor: "#FFF5EE",
     margin: 15,
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   offersText: {
     flex: 1,
     fontSize: 16,
     fontWeight: "bold",
     marginLeft: 10,
-    color: "#6F4E37",
+    color: theme.primary,
   },
   originsContainer: {
     paddingLeft: 15,
@@ -265,8 +292,13 @@ const styles = StyleSheet.create({
     width: 160,
     height: 120,
     marginRight: 15,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: "hidden",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   originImage: {
     width: "100%",
@@ -274,7 +306,7 @@ const styles = StyleSheet.create({
     position: "absolute",
   },
   originName: {
-    color: "#fff",
+    color: theme.background,
     fontSize: 18,
     fontWeight: "bold",
     padding: 15,
@@ -284,11 +316,16 @@ const styles = StyleSheet.create({
   mapCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: theme.background,
     margin: 15,
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 30,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   mapTextContainer: {
     flex: 1,
@@ -297,10 +334,11 @@ const styles = StyleSheet.create({
   mapTitle: {
     fontSize: 16,
     fontWeight: "bold",
+    color: theme.text,
   },
   mapSubtitle: {
     fontSize: 14,
-    color: "#666",
+    color: theme.textLight,
   },
 });
 
