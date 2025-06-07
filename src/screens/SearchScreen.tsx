@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   ScrollView,
@@ -6,8 +6,12 @@ import {
   TextInput,
   TouchableOpacity,
   Dimensions,
+  Platform,
+  Alert,
 } from "react-native";
-import { Text, Icon, Image } from "@rneui/themed";
+import { Text, Icon, Image, Button } from "@rneui/themed";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import * as Location from "expo-location";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -20,191 +24,192 @@ const theme = {
   textLight: "#666666",
 };
 
+interface CoffeeShop {
+  id: number;
+  name: string;
+  image: string;
+  rating: number;
+  location: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  };
+  distance?: string;
+}
+
 const SearchScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [recentSearches] = useState([
-    "Ethiopian coffee",
-    "Light roast",
-    "Blue Bottle",
-    "Pour over",
-  ]);
-
-  const categories = [
-    {
-      name: "Roasters",
-      icon: "store",
-      color: "#FFB74D",
-    },
-    {
-      name: "Beans",
-      icon: "coffee",
-      color: "#8D6E63",
-    },
-    {
-      name: "Brewing",
-      icon: "local-cafe",
-      color: "#4DB6AC",
-    },
-    {
-      name: "Equipment",
-      icon: "shopping-bag",
-      color: "#7986CB",
-    },
-  ];
-
-  const trendingCoffees = [
+  const [showMap, setShowMap] = useState(false);
+  const [location, setLocation] = useState<Location.LocationObject | null>(
+    null
+  );
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [coffeeShops] = useState<CoffeeShop[]>([
     {
       id: 1,
-      name: "Blue Bottle Hayes Valley Espresso",
-      image:
-        "https://images.unsplash.com/photo-1587734361993-0275024cb0b4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-      roaster: "Blue Bottle Coffee",
-      price: "$19.99",
+      name: "Blue Bottle Coffee",
+      image: "https://images.unsplash.com/photo-1559925393-8be0ec4767c8",
       rating: 4.8,
+      location: {
+        latitude: 37.7749,
+        longitude: -122.4194,
+        address: "300 Grant Ave, San Francisco, CA",
+      },
     },
     {
       id: 2,
-      name: "Stumptown Hair Bender",
-      image:
-        "https://images.unsplash.com/photo-1559525839-825fb034eb27?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-      roaster: "Stumptown Coffee",
-      price: "$16.99",
-      rating: 4.7,
+      name: "Sightglass Coffee",
+      image: "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+      rating: 4.6,
+      location: {
+        latitude: 37.7793,
+        longitude: -122.4192,
+        address: "270 7th Street, San Francisco, CA",
+      },
     },
     {
       id: 3,
-      name: "Counter Culture Apollo",
-      image:
-        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-      roaster: "Counter Culture",
-      price: "$17.99",
-      rating: 4.9,
+      name: "Ritual Coffee Roasters",
+      image: "https://images.unsplash.com/photo-1559925393-8be0ec4767c8",
+      rating: 4.7,
+      location: {
+        latitude: 37.7694,
+        longitude: -122.4237,
+        address: "1026 Valencia St, San Francisco, CA",
+      },
     },
-  ];
+  ]);
 
-  return (
-    <ScrollView style={styles.container}>
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMsg("Permission to access location was denied");
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      setLocation(location);
+    })();
+  }, []);
+
+  const renderSearchBar = () => (
+    <View style={styles.searchContainer}>
+      <View style={styles.searchBar}>
+        <Icon name="search" type="material" size={24} color={theme.textLight} />
+        <TextInput
+          placeholder="Search coffees, roasters, or cafes..."
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholderTextColor={theme.textLight}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery("")}>
+            <Icon
+              name="close"
+              type="material"
+              size={24}
+              color={theme.textLight}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+      <TouchableOpacity
+        style={styles.mapToggle}
+        onPress={() => setShowMap(!showMap)}
+      >
+        <Icon
+          name={showMap ? "view-list" : "map"}
+          type="material"
+          size={24}
+          color={theme.primary}
+        />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderMap = () => {
+    if (!location) {
+      return (
+        <View style={styles.loadingContainer}>
+          <Text>Loading map...</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.mapContainer}>
+        <MapView
+          provider={PROVIDER_GOOGLE}
+          style={styles.map}
+          initialRegion={{
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+        >
+          {/* User's location */}
+          <Marker
+            coordinate={{
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+            }}
+            title="You are here"
+            pinColor={theme.primary}
+          />
+
+          {/* Coffee shops */}
+          {coffeeShops.map((shop) => (
+            <Marker
+              key={shop.id}
+              coordinate={{
+                latitude: shop.location.latitude,
+                longitude: shop.location.longitude,
+              }}
+              title={shop.name}
+              description={shop.location.address}
+            >
+              <View style={styles.customMarker}>
+                <Icon name="local-cafe" color={theme.primary} size={24} />
+              </View>
+            </Marker>
+          ))}
+        </MapView>
+      </View>
+    );
+  };
+
+  const renderCoffeeShopList = () => (
+    <ScrollView style={styles.listContainer}>
+      {coffeeShops.map((shop) => (
+        <TouchableOpacity key={shop.id} style={styles.shopCard}>
+          <Image source={{ uri: shop.image }} style={styles.shopImage} />
+          <View style={styles.shopInfo}>
+            <Text style={styles.shopName}>{shop.name}</Text>
+            <Text style={styles.shopAddress}>{shop.location.address}</Text>
+            <View style={styles.ratingContainer}>
+              <Icon name="star" type="material" size={16} color="#FFD700" />
+              <Text style={styles.rating}>{shop.rating}</Text>
+            </View>
+          </View>
           <Icon
-            name="search"
+            name="chevron-right"
             type="material"
             size={24}
             color={theme.textLight}
           />
-          <TextInput
-            placeholder="Search coffees, roasters, or equipment..."
-            style={styles.searchInput}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor={theme.textLight}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Icon
-                name="close"
-                type="material"
-                size={24}
-                color={theme.textLight}
-              />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Recent Searches */}
-      {searchQuery.length === 0 && (
-        <>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent Searches</Text>
-            <View style={styles.recentSearches}>
-              {recentSearches.map((search, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.recentSearchItem}
-                  onPress={() => setSearchQuery(search)}
-                >
-                  <Icon
-                    name="history"
-                    type="material"
-                    size={16}
-                    color={theme.textLight}
-                    style={styles.recentSearchIcon}
-                  />
-                  <Text style={styles.recentSearchText}>{search}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Categories */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Browse Categories</Text>
-            <View style={styles.categoriesGrid}>
-              {categories.map((category) => (
-                <TouchableOpacity
-                  key={category.name}
-                  style={styles.categoryCard}
-                >
-                  <View
-                    style={[
-                      styles.categoryIcon,
-                      { backgroundColor: category.color },
-                    ]}
-                  >
-                    <Icon
-                      name={category.icon}
-                      type="material"
-                      size={24}
-                      color="white"
-                    />
-                  </View>
-                  <Text style={styles.categoryName}>{category.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Trending Now */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Trending Now</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.trendingContainer}
-            >
-              {trendingCoffees.map((coffee) => (
-                <TouchableOpacity key={coffee.id} style={styles.trendingCard}>
-                  <Image
-                    source={{ uri: coffee.image }}
-                    style={styles.trendingImage}
-                  />
-                  <View style={styles.trendingInfo}>
-                    <Text style={styles.trendingName} numberOfLines={2}>
-                      {coffee.name}
-                    </Text>
-                    <Text style={styles.trendingRoaster}>{coffee.roaster}</Text>
-                    <View style={styles.trendingBottom}>
-                      <Text style={styles.trendingPrice}>{coffee.price}</Text>
-                      <View style={styles.ratingContainer}>
-                        <Icon
-                          name="star"
-                          type="material"
-                          size={16}
-                          color="#FFD700"
-                        />
-                        <Text style={styles.ratingText}>{coffee.rating}</Text>
-                      </View>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </>
-      )}
+        </TouchableOpacity>
+      ))}
     </ScrollView>
+  );
+
+  return (
+    <View style={styles.container}>
+      {renderSearchBar()}
+      {showMap ? renderMap() : renderCoffeeShopList()}
+    </View>
   );
 };
 
@@ -218,13 +223,17 @@ const styles = StyleSheet.create({
     backgroundColor: theme.background,
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
+    flexDirection: "row",
+    alignItems: "center",
   },
   searchBar: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: theme.surface,
     borderRadius: 12,
     padding: 12,
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
@@ -232,112 +241,68 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.text,
   },
-  section: {
-    marginTop: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginLeft: 15,
-    marginBottom: 15,
-    color: theme.text,
-  },
-  recentSearches: {
-    paddingHorizontal: 15,
-  },
-  recentSearchItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  recentSearchIcon: {
-    marginRight: 10,
-  },
-  recentSearchText: {
-    fontSize: 16,
-    color: theme.text,
-  },
-  categoriesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 7.5,
-  },
-  categoryCard: {
-    width: (SCREEN_WIDTH - 60) / 2,
-    margin: 7.5,
-    padding: 15,
-    backgroundColor: theme.background,
-    borderRadius: 12,
-    alignItems: "center",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  categoryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  mapToggle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.surface,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
   },
-  categoryName: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: theme.text,
-    textAlign: "center",
+  mapContainer: {
+    flex: 1,
   },
-  trendingContainer: {
-    paddingLeft: 15,
-  },
-  trendingCard: {
-    width: 200,
-    backgroundColor: theme.background,
-    borderRadius: 12,
-    marginRight: 15,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  trendingImage: {
+  map: {
     width: "100%",
-    height: 150,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    height: "100%",
   },
-  trendingInfo: {
-    padding: 12,
+  customMarker: {
+    backgroundColor: "white",
+    padding: 5,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: theme.primary,
   },
-  trendingName: {
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  listContainer: {
+    flex: 1,
+  },
+  shopCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  shopImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  shopInfo: {
+    flex: 1,
+    marginLeft: 15,
+  },
+  shopName: {
     fontSize: 16,
     fontWeight: "bold",
     color: theme.text,
     marginBottom: 4,
   },
-  trendingRoaster: {
+  shopAddress: {
     fontSize: 14,
     color: theme.textLight,
-    marginBottom: 8,
-  },
-  trendingBottom: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  trendingPrice: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: theme.primary,
+    marginBottom: 4,
   },
   ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
-  ratingText: {
+  rating: {
     marginLeft: 4,
     fontSize: 14,
     fontWeight: "500",
