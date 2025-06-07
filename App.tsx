@@ -5,20 +5,21 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ThemeProvider } from "@rneui/themed";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Icon } from "@rneui/themed";
-import { StatusBar } from "react-native";
+import { StatusBar, View } from "react-native";
 
 // Import screens (we'll create these next)
 import HomeScreen from "./src/screens/HomeScreen";
 import SearchScreen from "./src/screens/SearchScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import AddReviewScreen from "./src/screens/AddReviewScreen";
+import ActivityScreen from "./src/screens/ActivityScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 // Define our theme colors
 const theme = {
-  primary: "#6F4E37", // Coffee brown
+  primary: "#8B4513", // Darker coffee brown
   secondary: "#C4A484", // Lighter brown
   background: "#FFFFFF",
   surface: "#F5F5F5",
@@ -26,6 +27,29 @@ const theme = {
   text: "#333333",
   textLight: "#666666",
 };
+
+const CameraButton = () => (
+  <View
+    style={{
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.primary,
+      justifyContent: "center",
+      alignItems: "center",
+      marginTop: -30, // Pull up the button
+      borderWidth: 3,
+      borderColor: "#FFF",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+    }}
+  >
+    <Icon name="camera-alt" type="material" color="#FFF" size={24} />
+  </View>
+);
 
 export default function App() {
   return (
@@ -39,14 +63,16 @@ export default function App() {
                 let iconName;
 
                 switch (route.name) {
-                  case "Home":
+                  case "Feed":
                     iconName = "home";
                     break;
-                  case "Search":
+                  case "Discover":
                     iconName = "search";
                     break;
-                  case "Add Review":
-                    iconName = "add-circle-outline";
+                  case "Camera":
+                    return <CameraButton />;
+                  case "Activity":
+                    iconName = "favorite-outline";
                     break;
                   case "Profile":
                     iconName = "person";
@@ -66,6 +92,7 @@ export default function App() {
               },
               tabBarActiveTintColor: theme.primary,
               tabBarInactiveTintColor: theme.textLight,
+              tabBarShowLabel: false, // Hide labels like Instagram
               tabBarStyle: {
                 backgroundColor: theme.background,
                 borderTopColor: "#E0E0E0",
@@ -89,24 +116,31 @@ export default function App() {
             })}
           >
             <Tab.Screen
-              name="Home"
+              name="Feed"
               component={HomeScreen}
               options={{
                 title: "Espressoo",
               }}
             />
             <Tab.Screen
-              name="Search"
+              name="Discover"
               component={SearchScreen}
               options={{
                 title: "Discover",
               }}
             />
             <Tab.Screen
-              name="Add Review"
+              name="Camera"
               component={AddReviewScreen}
               options={{
-                title: "Add Review",
+                title: "New Coffee",
+              }}
+            />
+            <Tab.Screen
+              name="Activity"
+              component={ActivityScreen}
+              options={{
+                title: "Activity",
               }}
             />
             <Tab.Screen
