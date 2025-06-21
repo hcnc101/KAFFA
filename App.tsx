@@ -6,6 +6,7 @@ import { ThemeProvider } from "@rneui/themed";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Icon } from "@rneui/themed";
 import { StatusBar, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 // Import screens (we'll create these next)
 import HomeScreen from "./src/screens/HomeScreen";
@@ -14,7 +15,15 @@ import ProfileScreen from "./src/screens/ProfileScreen";
 import AddReviewScreen from "./src/screens/AddReviewScreen";
 import ActivityScreen from "./src/screens/ActivityScreen";
 
-const Tab = createBottomTabNavigator();
+export type RootTabParamList = {
+  Feed: undefined;
+  Discover: undefined;
+  Camera: undefined;
+  Activity: undefined;
+  Profile: undefined;
+};
+
+const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator();
 
 // Define our theme colors
@@ -27,6 +36,29 @@ const theme = {
   text: "#333333",
   textLight: "#666666",
 };
+
+// Define styles outside the component to prevent re-creation on every render
+const tabBarStyle = {
+  backgroundColor: theme.background,
+  borderTopColor: "#E0E0E0",
+  height: 60,
+  paddingBottom: 8,
+  paddingTop: 8,
+};
+
+const headerStyle = {
+  backgroundColor: theme.background,
+  elevation: 0, // Remove shadow on Android
+  shadowOpacity: 0, // Remove shadow on iOS
+  borderBottomWidth: 1,
+  borderBottomColor: "#E0E0E0",
+};
+
+const headerTitleStyle = {
+  color: theme.primary,
+  fontSize: 20,
+  fontWeight: "600",
+} as const;
 
 const CameraButton = () => (
   <View
@@ -58,60 +90,31 @@ export default function App() {
       <ThemeProvider>
         <NavigationContainer>
           <Tab.Navigator
+            id={undefined}
             screenOptions={({ route }) => ({
               tabBarIcon: ({ focused, color, size }) => {
                 let iconName;
 
-                switch (route.name) {
-                  case "Feed":
-                    iconName = "home";
-                    break;
-                  case "Discover":
-                    iconName = "search";
-                    break;
-                  case "Camera":
-                    return <CameraButton />;
-                  case "Activity":
-                    iconName = "favorite-outline";
-                    break;
-                  case "Profile":
-                    iconName = "person";
-                    break;
-                  default:
-                    iconName = "circle";
+                if (route.name === "Feed") {
+                  iconName = focused ? "home" : "home-outline";
+                } else if (route.name === "Discover") {
+                  iconName = focused ? "search" : "search-outline";
+                } else if (route.name === "Camera") {
+                  return <CameraButton />;
+                } else if (route.name === "Activity") {
+                  iconName = focused ? "heart" : "heart-outline";
+                } else if (route.name === "Profile") {
+                  iconName = focused ? "person" : "person-outline";
                 }
 
-                return (
-                  <Icon
-                    name={iconName}
-                    type="material"
-                    size={size}
-                    color={color}
-                  />
-                );
+                return <Ionicons name={iconName} size={size} color={color} />;
               },
               tabBarActiveTintColor: theme.primary,
               tabBarInactiveTintColor: theme.textLight,
               tabBarShowLabel: false, // Hide labels like Instagram
-              tabBarStyle: {
-                backgroundColor: theme.background,
-                borderTopColor: "#E0E0E0",
-                height: 60,
-                paddingBottom: 8,
-                paddingTop: 8,
-              },
-              headerStyle: {
-                backgroundColor: theme.background,
-                elevation: 0, // Remove shadow on Android
-                shadowOpacity: 0, // Remove shadow on iOS
-                borderBottomWidth: 1,
-                borderBottomColor: "#E0E0E0",
-              },
-              headerTitleStyle: {
-                color: theme.primary,
-                fontSize: 20,
-                fontWeight: "600",
-              },
+              tabBarStyle: tabBarStyle,
+              headerStyle: headerStyle,
+              headerTitleStyle: headerTitleStyle,
               headerTitleAlign: "center",
             })}
           >
@@ -119,7 +122,7 @@ export default function App() {
               name="Feed"
               component={HomeScreen}
               options={{
-                title: "Espressoo",
+                title: "Kaffa",
               }}
             />
             <Tab.Screen
