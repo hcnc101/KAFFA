@@ -8,12 +8,13 @@ import { Icon } from "@rneui/themed";
 import { StatusBar, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// Import screens (we'll create these next)
+// Import screens
 import HomeScreen from "./src/screens/HomeScreen";
 import SearchScreen from "./src/screens/SearchScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import AddReviewScreen from "./src/screens/AddReviewScreen";
 import ActivityScreen from "./src/screens/ActivityScreen";
+import ReviewsScreen from "./src/screens/ReviewsScreen";
 
 export type RootTabParamList = {
   Feed: undefined;
@@ -21,10 +22,10 @@ export type RootTabParamList = {
   Camera: undefined;
   Activity: undefined;
   Profile: undefined;
+  Reviews: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
-const Stack = createNativeStackNavigator();
 
 // Define our theme colors
 const theme = {
@@ -90,7 +91,6 @@ export default function App() {
       <ThemeProvider>
         <NavigationContainer>
           <Tab.Navigator
-            id={undefined}
             screenOptions={({ route }) => ({
               tabBarIcon: ({ focused, color, size }) => {
                 let iconName;
@@ -105,6 +105,8 @@ export default function App() {
                   iconName = focused ? "heart" : "heart-outline";
                 } else if (route.name === "Profile") {
                   iconName = focused ? "person" : "person-outline";
+                } else if (route.name === "Reviews") {
+                  iconName = focused ? "list" : "list-outline";
                 }
 
                 return <Ionicons name={iconName} size={size} color={color} />;
@@ -151,6 +153,13 @@ export default function App() {
               component={ProfileScreen}
               options={{
                 title: "Profile",
+              }}
+            />
+            <Tab.Screen
+              name="Reviews"
+              component={ReviewsScreen}
+              options={{
+                title: "Reviews",
               }}
             />
           </Tab.Navigator>

@@ -12,6 +12,8 @@ import {
 import { Text, Icon, Image, Button } from "@rneui/themed";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
+import { coffeeShops } from "../data/coffeeShops";
+import CoffeeShopCard from "../components/CoffeeShopCard";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -184,23 +186,15 @@ const SearchScreen = () => {
   const renderCoffeeShopList = () => (
     <ScrollView style={styles.listContainer}>
       {coffeeShops.map((shop) => (
-        <TouchableOpacity key={shop.id} style={styles.shopCard}>
-          <Image source={{ uri: shop.image }} style={styles.shopImage} />
-          <View style={styles.shopInfo}>
-            <Text style={styles.shopName}>{shop.name}</Text>
-            <Text style={styles.shopAddress}>{shop.location.address}</Text>
-            <View style={styles.ratingContainer}>
-              <Icon name="star" type="material" size={16} color="#FFD700" />
-              <Text style={styles.rating}>{shop.rating}</Text>
-            </View>
-          </View>
-          <Icon
-            name="chevron-right"
-            type="material"
-            size={24}
-            color={theme.textLight}
-          />
-        </TouchableOpacity>
+        <CoffeeShopCard
+          key={shop.id}
+          name={shop.name}
+          address={shop.location.address}
+          rating={shop.rating}
+          reviewCount={shop.reviewCount}
+          description={shop.description}
+          image={shop.image}
+        />
       ))}
     </ScrollView>
   );
