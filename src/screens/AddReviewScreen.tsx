@@ -17,6 +17,7 @@ import {
 } from "@rneui/themed";
 import { addReview } from "../data/reviews";
 import { ReviewFormData } from "../types/review";
+import RadarChart from "../components/RadarChart";
 
 const milkTypes = ["None", "Dairy", "Oat", "Almond", "Soya"];
 
@@ -126,6 +127,12 @@ const AddReviewScreen = () => {
             Share your coffee experience with the community
           </Text>
         </View>
+
+        {/* Radar Chart for metrics */}
+        <RadarChart
+          values={[flavour, aroma, body, acidity, strength]}
+          labels={["Flavour", "Aroma", "Body", "Acidity", "Strength"]}
+        />
 
         <View style={styles.form}>
           <Input
