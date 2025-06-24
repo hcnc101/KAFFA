@@ -3,12 +3,21 @@ export interface Review {
   coffeeName: string;
   roaster: string;
   origin: string;
-  rating: number;
+  rating: number; // legacy overall rating
   notes: string;
   date: Date;
   userId: string;
   imageUrl?: string;
   tags?: string[];
+  // New metrics
+  flavour: number;
+  aroma: number;
+  body: number;
+  acidity: number;
+  strength: number;
+  overall: number;
+  milkType: string;
+  keywords?: string[];
 }
 
 export interface ReviewFormData {
@@ -17,6 +26,15 @@ export interface ReviewFormData {
   origin: string;
   rating: number;
   notes: string;
+  // New metrics
+  flavour: number;
+  aroma: number;
+  body: number;
+  acidity: number;
+  strength: number;
+  overall: number;
+  milkType: string;
+  keywords?: string[];
 }
 
 export interface ReviewStats {
