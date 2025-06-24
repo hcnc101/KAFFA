@@ -7,16 +7,32 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { Text, Input, Button, AirbnbRating, Icon } from "@rneui/themed";
+import {
+  Text,
+  Input,
+  Button,
+  AirbnbRating,
+  Icon,
+  ButtonGroup,
+} from "@rneui/themed";
 import { addReview } from "../data/reviews";
 import { ReviewFormData } from "../types/review";
+
+const milkTypes = ["None", "Dairy", "Oat", "Almond", "Soya"];
 
 const AddReviewScreen = () => {
   const [coffeeName, setCoffeeName] = useState("");
   const [roaster, setRoaster] = useState("");
-  const [rating, setRating] = useState(0);
-  const [notes, setNotes] = useState("");
   const [origin, setOrigin] = useState("");
+  const [notes, setNotes] = useState("");
+  // Multi-metric states
+  const [flavour, setFlavour] = useState(5);
+  const [aroma, setAroma] = useState(5);
+  const [body, setBody] = useState(5);
+  const [acidity, setAcidity] = useState(5);
+  const [strength, setStrength] = useState(5);
+  const [overall, setOverall] = useState(3);
+  const [milkTypeIdx, setMilkTypeIdx] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validateForm = (): boolean => {
@@ -28,10 +44,6 @@ const AddReviewScreen = () => {
       Alert.alert("Error", "Please enter a roaster");
       return false;
     }
-    if (rating === 0) {
-      Alert.alert("Error", "Please select a rating");
-      return false;
-    }
     if (!origin.trim()) {
       Alert.alert("Error", "Please enter an origin");
       return false;
@@ -41,21 +53,24 @@ const AddReviewScreen = () => {
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
-
     setIsSubmitting(true);
-
     try {
       const reviewData: ReviewFormData = {
         coffeeName: coffeeName.trim(),
         roaster: roaster.trim(),
         origin: origin.trim(),
-        rating,
         notes: notes.trim(),
+        // Multi-metric
+        flavour,
+        aroma,
+        body,
+        acidity,
+        strength,
+        overall,
+        rating: overall, // for legacy compatibility
+        milkType: milkTypes[milkTypeIdx],
       };
-
       const newReview = addReview(reviewData);
-
-      // Show success message
       Alert.alert(
         "Success!",
         `Your review for ${newReview.coffeeName} has been added.`,
@@ -63,12 +78,17 @@ const AddReviewScreen = () => {
           {
             text: "OK",
             onPress: () => {
-              // Reset form
               setCoffeeName("");
               setRoaster("");
               setOrigin("");
-              setRating(0);
               setNotes("");
+              setFlavour(5);
+              setAroma(5);
+              setBody(5);
+              setAcidity(5);
+              setStrength(5);
+              setOverall(3);
+              setMilkTypeIdx(0);
             },
           },
         ]
@@ -80,8 +100,7 @@ const AddReviewScreen = () => {
     }
   };
 
-  const isFormValid =
-    coffeeName.trim() && roaster.trim() && rating > 0 && origin.trim();
+  const isFormValid = coffeeName.trim() && roaster.trim() && origin.trim();
 
   return (
     <KeyboardAvoidingView
@@ -147,19 +166,41 @@ const AddReviewScreen = () => {
             containerStyle={styles.inputContainer}
           />
 
-          <View style={styles.ratingContainer}>
-            <Text style={styles.ratingLabel}>Rating *</Text>
-            <AirbnbRating
-              count={5}
-              reviews={["Terrible", "Meh", "OK", "Good", "Amazing"]}
-              defaultRating={0}
-              size={30}
-              onFinishRating={setRating}
-              selectedColor="#6F4E37"
-              reviewColor="#6F4E37"
-              reviewSize={16}
-            />
-          </View>
+          {/* Multi-metric sliders */}
+          <Text style={styles.metricLabel}>Flavour</Text>
+          <SliderWithValue value={flavour} setValue={setFlavour} />
+          <Text style={styles.metricLabel}>Aroma</Text>
+          <SliderWithValue value={aroma} setValue={setAroma} />
+          <Text style={styles.metricLabel}>Body</Text>
+          <SliderWithValue value={body} setValue={setBody} />
+          <Text style={styles.metricLabel}>Acidity</Text>
+          <SliderWithValue value={acidity} setValue={setAcidity} />
+          <Text style={styles.metricLabel}>Strength</Text>
+          <SliderWithValue value={strength} setValue={setStrength} />
+
+          {/* Milk type selector */}
+          <Text style={styles.metricLabel}>Milk Type</Text>
+          <ButtonGroup
+            buttons={milkTypes}
+            selectedIndex={milkTypeIdx}
+            onPress={setMilkTypeIdx}
+            containerStyle={styles.milkTypeGroup}
+            selectedButtonStyle={styles.selectedMilkType}
+            textStyle={styles.milkTypeText}
+          />
+
+          {/* Overall star rating */}
+          <Text style={styles.metricLabel}>Overall</Text>
+          <AirbnbRating
+            count={5}
+            reviews={["Terrible", "Meh", "OK", "Good", "Amazing"]}
+            defaultRating={overall}
+            size={30}
+            onFinishRating={setOverall}
+            selectedColor="#6F4E37"
+            reviewColor="#6F4E37"
+            reviewSize={16}
+          />
 
           <Input
             label="Tasting Notes"
@@ -202,6 +243,43 @@ const AddReviewScreen = () => {
   );
 };
 
+// SliderWithValue component for 1-10 sliders
+import { Slider } from "@rneui/themed";
+const SliderWithValue = ({
+  value,
+  setValue,
+}: {
+  value: number;
+  setValue: (v: number) => void;
+}) => (
+  <View
+    style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
+  >
+    <Slider
+      value={value}
+      onValueChange={setValue}
+      minimumValue={1}
+      maximumValue={10}
+      step={1}
+      thumbStyle={{ height: 24, width: 24, backgroundColor: "#6F4E37" }}
+      trackStyle={{ height: 6, borderRadius: 3 }}
+      style={{ flex: 1 }}
+      minimumTrackTintColor="#6F4E37"
+      maximumTrackTintColor="#d3d3d3"
+    />
+    <Text
+      style={{
+        width: 32,
+        textAlign: "center",
+        color: "#6F4E37",
+        fontWeight: "bold",
+      }}
+    >
+      {value}
+    </Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -235,15 +313,24 @@ const styles = StyleSheet.create({
   inputContainer: {
     marginBottom: 15,
   },
-  ratingContainer: {
-    marginBottom: 20,
-    paddingHorizontal: 10,
+  metricLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#6F4E37",
+    marginTop: 10,
+    marginBottom: 2,
+    marginLeft: 2,
   },
-  ratingLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#86939e",
+  milkTypeGroup: {
     marginBottom: 15,
+    borderRadius: 10,
+    height: 40,
+  },
+  selectedMilkType: {
+    backgroundColor: "#6F4E37",
+  },
+  milkTypeText: {
+    fontSize: 14,
   },
   notesInput: {
     minHeight: 80,
