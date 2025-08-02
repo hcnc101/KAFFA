@@ -8,6 +8,9 @@ import {
   RefreshControl,
 } from "react-native";
 import { Text, Avatar, Icon, Button, Image, Tab, TabView } from "@rneui/themed";
+import ReviewsList from "../components/ReviewsList";
+import { getAllReviews } from "../data/reviews";
+import { Review } from "../types/review";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -31,6 +34,9 @@ interface Post {
 const ProfileScreen = () => {
   const [index, setIndex] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [filteredReviews, setFilteredReviews] = useState<Review[]>([]);
+  const [search, setSearch] = useState("");
 
   const userProfile = {
     name: "Coffee Enthusiast",
@@ -73,9 +79,31 @@ const ProfileScreen = () => {
     // Add more posts as needed
   ];
 
+  React.useEffect(() => {
+    const allReviews = getAllReviews();
+    setReviews(allReviews);
+    setFilteredReviews(allReviews);
+  }, []);
+
+  React.useEffect(() => {
+    if (search.trim()) {
+      const searchLower = search.toLowerCase();
+      setFilteredReviews(
+        reviews.filter(
+          (review) =>
+            review.coffeeName.toLowerCase().includes(searchLower) ||
+            review.roaster.toLowerCase().includes(searchLower) ||
+            review.origin.toLowerCase().includes(searchLower) ||
+            review.notes.toLowerCase().includes(searchLower)
+        )
+      );
+    } else {
+      setFilteredReviews(reviews);
+    }
+  }, [search, reviews]);
+
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
-    // Simulate data fetching
     setTimeout(() => {
       setRefreshing(false);
     }, 2000);
@@ -202,27 +230,18 @@ const ProfileScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={{ flex: 1 }}>
       <Tab
         value={index}
         onChange={setIndex}
-        indicatorStyle={styles.tabIndicator}
+        indicatorStyle={{ backgroundColor: theme.primary }}
         variant="primary"
       >
-        <Tab.Item
-          title="Posts"
-          titleStyle={styles.tabTitle}
-          icon={{ name: "grid-on", type: "material", color: theme.text }}
-        />
-        <Tab.Item
-          title="Reviews"
-          titleStyle={styles.tabTitle}
-          icon={{ name: "rate-review", type: "material", color: theme.text }}
-        />
+        <Tab.Item title="Profile" icon={{ name: "person", type: "material" }} />
+        <Tab.Item title="Reviews" icon={{ name: "list", type: "material" }} />
       </Tab>
-
       <TabView value={index} onChange={setIndex} animationType="spring">
-        <TabView.Item style={styles.tabViewItem}>
+        <TabView.Item style={{ width: "100%", flex: 1 }}>
           <ScrollView
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -232,18 +251,15 @@ const ProfileScreen = () => {
             <View style={styles.postsGrid}>{posts.map(renderPost)}</View>
           </ScrollView>
         </TabView.Item>
-
-        <TabView.Item style={styles.tabViewItem}>
-          <ScrollView
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-          >
-            {renderHeader()}
-            <View style={styles.postsGrid}>
-              {posts.filter((post) => post.type === "review").map(renderPost)}
-            </View>
-          </ScrollView>
+        <TabView.Item style={{ width: "100%", flex: 1 }}>
+          <View style={{ flex: 1, backgroundColor: "#fff" }}>
+            <ReviewsList
+              reviews={filteredReviews}
+              onReviewPress={() => {}}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+            />
+          </View>
         </TabView.Item>
       </TabView>
     </View>

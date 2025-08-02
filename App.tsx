@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Icon } from "@rneui/themed";
 import { StatusBar, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import Svg, { Path } from "react-native-svg";
 
 // Import screens
 import HomeScreen from "./src/screens/HomeScreen";
@@ -14,7 +15,6 @@ import SearchScreen from "./src/screens/SearchScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import AddReviewScreen from "./src/screens/AddReviewScreen";
 import ActivityScreen from "./src/screens/ActivityScreen";
-import ReviewsScreen from "./src/screens/ReviewsScreen";
 
 export type RootTabParamList = {
   Feed: undefined;
@@ -22,7 +22,6 @@ export type RootTabParamList = {
   Camera: undefined;
   Activity: undefined;
   Profile: undefined;
-  Reviews: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -61,6 +60,15 @@ const headerTitleStyle = {
   fontWeight: "600",
 } as const;
 
+const CoffeeBeanIcon = ({ size = 24, color = "#FFF" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12 2C7 2 2 7 2 12c0 5 5 10 10 10s10-5 10-10C22 7 17 2 12 2zm0 18c-4.41 0-8-4.03-8-8 0-1.85.63-3.55 1.69-4.9l11.21 11.21C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.41 0 8 4.03 8 8 0 1.85-.63 3.55-1.69 4.9z"
+      fill={color}
+    />
+  </Svg>
+);
+
 const CameraButton = () => (
   <View
     style={{
@@ -80,7 +88,7 @@ const CameraButton = () => (
       elevation: 5,
     }}
   >
-    <Icon name="camera-alt" type="material" color="#FFF" size={24} />
+    <CoffeeBeanIcon size={28} color="#FFF" />
   </View>
 );
 
@@ -105,8 +113,6 @@ export default function App() {
                   iconName = focused ? "heart" : "heart-outline";
                 } else if (route.name === "Profile") {
                   iconName = focused ? "person" : "person-outline";
-                } else if (route.name === "Reviews") {
-                  iconName = focused ? "list" : "list-outline";
                 }
 
                 return <Ionicons name={iconName} size={size} color={color} />;
@@ -152,14 +158,7 @@ export default function App() {
               name="Profile"
               component={ProfileScreen}
               options={{
-                title: "Profile",
-              }}
-            />
-            <Tab.Screen
-              name="Reviews"
-              component={ReviewsScreen}
-              options={{
-                title: "Reviews",
+                title: "Profile & Reviews",
               }}
             />
           </Tab.Navigator>
