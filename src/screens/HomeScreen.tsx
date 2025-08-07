@@ -12,6 +12,7 @@ import {
   Image,
   ImageStyle,
   Vibration,
+  Animated,
 } from "react-native";
 import { Text, Card, Button, Icon, Input, ListItem } from "@rneui/themed";
 import Svg, { Circle, Path, Text as SvgText, Line, G } from "react-native-svg";
@@ -77,6 +78,9 @@ const HomeScreen = () => {
   const [lastInactiveTime, setLastInactiveTime] = useState<Date | null>(null);
   const [showWakeUpSettings, setShowWakeUpSettings] = useState(false);
   const [show24Hour, setShow24Hour] = useState(false); // Add 24hr toggle
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const fadeAnim = useState(new Animated.Value(0))[0]; // For smooth toast animation
 
   // Helper function to get date key (YYYY-MM-DD)
   function getDateKey(date: Date): string {
@@ -269,41 +273,44 @@ const HomeScreen = () => {
       dateKey: getDateKey(now),
     };
 
-    console.log("Adding coffee entry:", entry);
+    // STREAMLINED FEEDBACK - Just what's needed
     setCoffeeEntries((prev) => [...prev, entry]);
     setShowCoffeeModal(false);
+    setShowClockView(true); // Auto-switch to clock view
+    setCurrentTime(new Date()); // Force immediate update
 
-    // IMMEDIATE FEEDBACK - Multiple types
+    // Subtle toast notification (no intrusive alert)
+    showSuccessToast(`☕ ${coffeeType.name} logged - ${coffeeType.caffeine}mg`);
 
-    // 1. Haptic feedback (vibration)
-    Vibration.vibrate(100);
+    // Light haptic feedback (optional, less jarring)
+    Vibration.vibrate(50);
 
-    // 2. Success alert with coffee details
-    Alert.alert(
-      "☕ Coffee Logged!",
-      `${coffeeType.name} (${coffeeType.caffeine}mg) added to your tracker.\n\n🔍 Check the clock for your new orange arc!`,
-      [
-        {
-          text: "View Clock",
-          onPress: () => {
-            setShowClockView(true);
-            // Force immediate update
-            setCurrentTime(new Date());
-          },
-        },
-      ]
-    );
-
-    // 3. Log significant activity
+    // Log activity
     logActivity("significant_activity");
+  };
 
-    // 4. Force immediate clock update
-    setCurrentTime(new Date());
+  // Smooth toast notification
+  const showSuccessToast = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
 
-    // 5. Console feedback for debugging
-    console.log(
-      `✅ SUCCESS: ${coffeeType.name} logged at ${now.toLocaleTimeString()}`
-    );
+    // Smooth fade in
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+
+    // Auto hide after 2 seconds
+    setTimeout(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowToast(false);
+      });
+    }, 2000);
   };
 
   // Get today's coffee entries only
@@ -944,185 +951,228 @@ const HomeScreen = () => {
   const todaysEntries = getTodaysCoffeeEntries();
 
   return (
-    <ScrollView style={styles.container}>
-      {/* REDESIGNED HEADER - Remove title, focus on toggles */}
-      <View style={styles.headerRedesigned}>
-        {/* Clock type toggle - LEFT SIDE */}
-        <View style={styles.viewToggleRedesigned}>
-          <TouchableOpacity
-            onPress={() => setShowClockView(true)}
-            style={[
-              styles.toggleButtonRedesigned,
-              showClockView && styles.activeToggleRedesigned,
-            ]}
-          >
-            <Icon
-              name="schedule"
-              size={20}
-              color={showClockView ? "white" : theme.text}
-            />
-            <Text
-              style={[
-                styles.toggleLabelText,
-                showClockView && styles.activeToggleLabelText,
-              ]}
-            >
-              Clock
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setShowClockView(false)}
-            style={[
-              styles.toggleButtonRedesigned,
-              !showClockView && styles.activeToggleRedesigned,
-            ]}
-          >
-            <Icon
-              name="timeline"
-              size={20}
-              color={!showClockView ? "white" : theme.text}
-            />
-            <Text
-              style={[
-                styles.toggleLabelText,
-                !showClockView && styles.activeToggleLabelText,
-              ]}
-            >
-              Timeline
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 12hr/24hr toggle - RIGHT SIDE */}
-        {showClockView && (
-          <View style={styles.hourToggleRedesigned}>
+    <View style={styles.container}>
+      <ScrollView>
+        {/* Header */}
+        <View style={styles.headerRedesigned}>
+          {/* Clock type toggle - LEFT SIDE */}
+          <View style={styles.viewToggleRedesigned}>
             <TouchableOpacity
-              onPress={() => {
-                console.log("Switching to 12hr mode");
-                setShow24Hour(false);
-              }}
+              onPress={() => setShowClockView(true)}
               style={[
-                styles.hourButtonRedesigned,
-                !show24Hour && styles.activeHourButtonRedesigned,
+                styles.toggleButtonRedesigned,
+                showClockView && styles.activeToggleRedesigned,
               ]}
             >
+              <Icon
+                name="schedule"
+                size={20}
+                color={showClockView ? "white" : theme.text}
+              />
               <Text
                 style={[
-                  styles.hourTextRedesigned,
-                  !show24Hour && styles.activeHourTextRedesigned,
+                  styles.toggleLabelText,
+                  showClockView && styles.activeToggleLabelText,
                 ]}
               >
-                12hr
+                Clock
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => {
-                console.log("Switching to 24hr mode");
-                setShow24Hour(true);
-              }}
+              onPress={() => setShowClockView(false)}
               style={[
-                styles.hourButtonRedesigned,
-                show24Hour && styles.activeHourButtonRedesigned,
+                styles.toggleButtonRedesigned,
+                !showClockView && styles.activeToggleRedesigned,
               ]}
             >
+              <Icon
+                name="timeline"
+                size={20}
+                color={!showClockView ? "white" : theme.text}
+              />
               <Text
                 style={[
-                  styles.hourTextRedesigned,
-                  show24Hour && styles.activeHourTextRedesigned,
+                  styles.toggleLabelText,
+                  !showClockView && styles.activeToggleLabelText,
                 ]}
               >
-                24hr
+                Timeline
               </Text>
             </TouchableOpacity>
           </View>
-        )}
-      </View>
 
-      {/* Main Display */}
-      {showClockView ? renderCoffeeClock() : renderTimelineView()}
-
-      {/* Status Cards */}
-      <View style={styles.statusContainer}>
-        {cortisolInfo.isInWindow && (
-          <Card
-            containerStyle={[
-              styles.statusCard,
-              { borderLeftColor: theme.cortisol },
-            ]}
-          >
-            <Text style={styles.statusTitle}>⏰ Cortisol Peak Active</Text>
-            <Text style={styles.statusText}>
-              Your natural alertness is high. Consider waiting until{" "}
-              {cortisolInfo.endTime.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}{" "}
-              for optimal coffee timing.
-            </Text>
-          </Card>
-        )}
-
-        {sleepInfo.isInWindow && (
-          <Card
-            containerStyle={[
-              styles.statusCard,
-              { borderLeftColor: theme.sleep },
-            ]}
-          >
-            <Text style={styles.statusTitle}>🌙 Sleep Impact Zone</Text>
-            <Text style={styles.statusText}>
-              Coffee consumed now may affect your sleep quality. Consider decaf
-              or herbal tea.
-            </Text>
-          </Card>
-        )}
-
-        <Card containerStyle={styles.statusCard}>
-          <Text style={styles.statusTitle}>Current Caffeine Level</Text>
-          <Text style={styles.statusCardText}>
-            {Math.round(getCurrentCaffeineLevel())}mg / 400mg daily limit
-          </Text>
-          {getCurrentCaffeineLevel() > 300 && (
-            <Text style={styles.warningText}>⚠️ Approaching daily limit</Text>
+          {/* 12hr/24hr toggle - RIGHT SIDE */}
+          {showClockView && (
+            <View style={styles.hourToggleRedesigned}>
+              <TouchableOpacity
+                onPress={() => setShow24Hour(false)}
+                style={[
+                  styles.hourButtonRedesigned,
+                  !show24Hour && styles.activeHourButtonRedesigned,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.hourTextRedesigned,
+                    !show24Hour && styles.activeHourTextRedesigned,
+                  ]}
+                >
+                  12hr
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShow24Hour(true)}
+                style={[
+                  styles.hourButtonRedesigned,
+                  show24Hour && styles.activeHourButtonRedesigned,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.hourTextRedesigned,
+                    show24Hour && styles.activeHourTextRedesigned,
+                  ]}
+                >
+                  24hr
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
-          {getTodaysTotalCaffeine() > 400 && (
-            <Text style={styles.warningText}>⚠️ Daily limit exceeded</Text>
-          )}
-        </Card>
-      </View>
+        </View>
 
-      {/* Coffee Log */}
-      <Card containerStyle={styles.logCard}>
-        <Text style={styles.sectionTitle}>Today's Coffee Log</Text>
-        {todaysEntries.length === 0 ? (
-          <Text style={styles.emptyLog}>No coffee logged today</Text>
-        ) : (
-          todaysEntries.map((entry) => (
-            <ListItem key={entry.id} containerStyle={styles.logItem}>
-              <Icon name="local-cafe" color={theme.primary} />
-              <ListItem.Content>
-                <ListItem.Title>{entry.type}</ListItem.Title>
-                <ListItem.Subtitle>
-                  {entry.caffeine}mg at{" "}
-                  {entry.timestamp.toLocaleTimeString([], {
+        {/* Main Display */}
+        {showClockView ? renderCoffeeClock() : renderTimelineView()}
+
+        {/* Status Cards - Only if relevant */}
+        {(cortisolInfo.isInWindow ||
+          sleepInfo.isInWindow ||
+          getCurrentCaffeineLevel() > 300) && (
+          <View style={styles.statusContainer}>
+            {cortisolInfo.isInWindow && (
+              <Card
+                containerStyle={[
+                  styles.statusCard,
+                  { borderLeftColor: theme.cortisol },
+                ]}
+              >
+                <Text style={styles.statusTitle}>⏰ Cortisol Peak Active</Text>
+                <Text style={styles.statusText}>
+                  Wait until{" "}
+                  {cortisolInfo.endTime.toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
-                  })}
-                </ListItem.Subtitle>
-              </ListItem.Content>
-            </ListItem>
-          ))
-        )}
-      </Card>
+                  })}{" "}
+                  for optimal timing.
+                </Text>
+              </Card>
+            )}
 
-      {/* Add Coffee Button */}
+            {sleepInfo.isInWindow && (
+              <Card
+                containerStyle={[
+                  styles.statusCard,
+                  { borderLeftColor: theme.sleep },
+                ]}
+              >
+                <Text style={styles.statusTitle}>🌙 Sleep Impact Zone</Text>
+                <Text style={styles.statusText}>
+                  Coffee now may affect sleep quality.
+                </Text>
+              </Card>
+            )}
+
+            {getCurrentCaffeineLevel() > 300 && (
+              <Card containerStyle={styles.statusCard}>
+                <Text style={styles.statusTitle}>⚠️ High Caffeine</Text>
+                <Text style={styles.statusText}>
+                  {Math.round(getCurrentCaffeineLevel())}mg / 400mg daily limit
+                </Text>
+              </Card>
+            )}
+          </View>
+        )}
+
+        {/* Coffee Log - Simplified */}
+        {todaysEntries.length > 0 && (
+          <Card containerStyle={styles.logCard}>
+            <Text style={styles.sectionTitle}>Today's Coffee Log</Text>
+            {todaysEntries.map((entry) => (
+              <ListItem key={entry.id} containerStyle={styles.logItem}>
+                <Icon name="local-cafe" color={theme.primary} />
+                <ListItem.Content>
+                  <ListItem.Title>{entry.type}</ListItem.Title>
+                  <ListItem.Subtitle>
+                    {entry.caffeine}mg at{" "}
+                    {entry.timestamp.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </ListItem.Subtitle>
+                </ListItem.Content>
+              </ListItem>
+            ))}
+          </Card>
+        )}
+      </ScrollView>
+
+      {/* Floating Add Coffee Button */}
       <TouchableOpacity
-        style={styles.addButton}
+        style={styles.floatingAddButton}
         onPress={() => setShowCoffeeModal(true)}
       >
-        <Icon name="add" size={24} color="white" />
-        <Text style={styles.addButtonText}>Log Coffee</Text>
+        <Icon name="add" size={28} color="white" />
       </TouchableOpacity>
+
+      {/* STREAMLINED Coffee Selection Modal */}
+      <Modal
+        visible={showCoffeeModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCoffeeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.streamlinedModalContent}>
+            <Text style={styles.modalTitle}>Log Coffee</Text>
+
+            {coffeeTypes.map((coffee) => (
+              <TouchableOpacity
+                key={coffee.name}
+                style={styles.streamlinedCoffeeOption}
+                onPress={() => addCoffeeEntry(coffee)}
+              >
+                <Icon
+                  name={coffee.icon}
+                  type="material"
+                  color={theme.primary}
+                  size={24}
+                />
+                <View style={styles.coffeeInfo}>
+                  <Text style={styles.coffeeName}>{coffee.name}</Text>
+                  <Text style={styles.caffeineContent}>
+                    {coffee.caffeine}mg
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              style={styles.cancelButtonStreamlined}
+              onPress={() => setShowCoffeeModal(false)}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Subtle Toast Notification */}
+      {showToast && (
+        <Animated.View
+          style={[styles.toastNotification, { opacity: fadeAnim }]}
+        >
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </Animated.View>
+      )}
 
       {/* IMPROVED Coffee Selection Modal with Preview */}
       <Modal
@@ -1237,7 +1287,7 @@ const HomeScreen = () => {
 
       {/* REMOVE THE ENTIRE CUSTOM BOTTOM BAR FROM HERE */}
       {/* It should be handled by React Navigation instead */}
-    </ScrollView>
+    </View>
   );
 };
 
@@ -2226,6 +2276,74 @@ const styles = StyleSheet.create({
     color: "white",
     textAlign: "center",
     fontWeight: "600",
+  },
+
+  // STREAMLINED STYLES
+  floatingAddButton: {
+    position: "absolute",
+    bottom: 30,
+    right: 30,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: theme.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+
+  streamlinedModalContent: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    maxHeight: "70%",
+  },
+
+  streamlinedCoffeeOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: "#FAFAFA",
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+
+  cancelButtonStreamlined: {
+    padding: 16,
+    alignItems: "center",
+    marginTop: 8,
+  },
+
+  cancelText: {
+    color: theme.textLight,
+    fontSize: 16,
+    fontWeight: "500",
+  },
+
+  toastNotification: {
+    position: "absolute",
+    top: 120,
+    left: 20,
+    right: 20,
+    backgroundColor: "#4CAF50",
+    padding: 12,
+    borderRadius: 8,
+    zIndex: 1000,
+    elevation: 10,
+  },
+
+  toastText: {
+    color: "white",
+    textAlign: "center",
+    fontWeight: "500",
+    fontSize: 14,
   },
 });
 
