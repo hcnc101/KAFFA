@@ -46,6 +46,7 @@ interface CoffeeEntry {
   timestamp: Date;
   peakTime: Date;
   halfLifeTime: Date;
+  dateKey: string; // Add date key for daily tracking
 }
 
 const HomeScreen = () => {
@@ -56,28 +57,39 @@ const HomeScreen = () => {
   const [bedTime, setBedTime] = useState(
     new Date(new Date().setHours(22, 0, 0, 0))
   );
-  const [coffeeEntries, setCoffeeEntries] = useState<CoffeeEntry[]>([
-    // Add some test data to see if it works
-    {
-      id: "test1",
-      type: "Cold Brew",
-      caffeine: 200,
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-      peakTime: new Date(Date.now() - 2 * 60 * 60 * 1000 + 45 * 60000),
-      halfLifeTime: new Date(
-        Date.now() - 2 * 60 * 60 * 1000 + 5.5 * 60 * 60000
-      ),
-    },
-  ]);
+  const [coffeeEntries, setCoffeeEntries] = useState<CoffeeEntry[]>([]);
   const [showCoffeeModal, setShowCoffeeModal] = useState(false);
   const [showClockView, setShowClockView] = useState(true);
+  const [currentDateKey, setCurrentDateKey] = useState(getDateKey(new Date()));
+
+  // Helper function to get date key (YYYY-MM-DD)
+  function getDateKey(date: Date): string {
+    return date.toISOString().split("T")[0];
+  }
+
+  // Helper function to check if it's a new day
+  const checkForNewDay = () => {
+    const todayKey = getDateKey(new Date());
+    if (todayKey !== currentDateKey) {
+      // New day detected - reset coffee entries
+      setCurrentDateKey(todayKey);
+      setCoffeeEntries([]); // Clear all entries for new day
+      console.log("New day detected, resetting coffee entries");
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 10000); // Update every 10 seconds for better responsiveness
+      checkForNewDay(); // Check for day change
+    }, 10000); // Update every 10 seconds
 
     return () => clearInterval(timer);
+  }, [currentDateKey]);
+
+  // Load coffee entries for today only
+  useEffect(() => {
+    checkForNewDay(); // Check on component mount
   }, []);
 
   const addCoffeeEntry = (coffeeType: any) => {
@@ -86,29 +98,39 @@ const HomeScreen = () => {
     const halfLifeTime = new Date(now.getTime() + 5.5 * 60 * 60000); // Half-life at 5.5 hours
 
     const entry: CoffeeEntry = {
-      id: Date.now().toString(), // Better ID generation
+      id: Date.now().toString(),
       type: coffeeType.name,
       caffeine: coffeeType.caffeine,
       timestamp: now,
       peakTime,
       halfLifeTime,
+      dateKey: getDateKey(now), // Track which day this entry belongs to
     };
 
-    console.log("Adding coffee entry:", entry); // Debug log
+    console.log("Adding coffee entry:", entry);
     setCoffeeEntries((prev) => [...prev, entry]);
     setShowCoffeeModal(false);
   };
 
+  // Get today's coffee entries only
+  const getTodaysCoffeeEntries = () => {
+    const todayKey = getDateKey(currentTime);
+    return coffeeEntries.filter((entry) => entry.dateKey === todayKey);
+  };
+
   const getCurrentCaffeineLevel = () => {
     const now = currentTime.getTime();
-    const totalCaffeine = coffeeEntries.reduce((total, entry) => {
+    const todaysEntries = getTodaysCoffeeEntries();
+
+    if (todaysEntries.length === 0) {
+      return 0;
+    }
+
+    const totalCaffeine = todaysEntries.reduce((total, entry) => {
       const timeElapsed = (now - entry.timestamp.getTime()) / (1000 * 60 * 60); // Hours
-      console.log(
-        `Entry ${entry.type}: ${timeElapsed.toFixed(2)} hours elapsed`
-      ); // Debug log
 
       if (timeElapsed < 0) return total;
-      if (timeElapsed > 24) return total; // Remove very old entries
+      if (timeElapsed > 24) return total; // Caffeine effectively gone after 24 hours
 
       // Caffeine absorption and decay model
       let currentLevel;
@@ -121,14 +143,15 @@ const HomeScreen = () => {
         currentLevel = entry.caffeine * Math.pow(0.5, decayTime / 5.5);
       }
 
-      console.log(
-        `Entry ${entry.type}: ${currentLevel.toFixed(2)}mg current level`
-      ); // Debug log
       return total + currentLevel;
     }, 0);
 
-    console.log(`Total caffeine: ${totalCaffeine.toFixed(2)}mg`); // Debug log
     return totalCaffeine;
+  };
+
+  const getTodaysTotalCaffeine = () => {
+    const todaysEntries = getTodaysCoffeeEntries();
+    return todaysEntries.reduce((total, entry) => total + entry.caffeine, 0);
   };
 
   const getCortisolWindow = () => {
@@ -444,6 +467,14 @@ const HomeScreen = () => {
           </View>
         </View>
 
+        {/* Daily stats */}
+        <View style={styles.dailyStats}>
+          <Text style={styles.statsText}>
+            Today: {getTodaysCoffeeEntries().length} drinks •{" "}
+            {Math.round(getTodaysTotalCaffeine())}mg total
+          </Text>
+        </View>
+
         {/* Enhanced legend */}
         <View style={styles.enhancedLegend}>
           <View style={styles.enhancedLegendItem}>
@@ -472,6 +503,7 @@ const HomeScreen = () => {
   const renderTimelineView = () => {
     const hours = Array.from({ length: 24 }, (_, i) => i);
     const currentHour = currentTime.getHours();
+    const todaysEntries = getTodaysCoffeeEntries();
 
     return (
       <ScrollView
@@ -484,7 +516,7 @@ const HomeScreen = () => {
           hourTime.setHours(hour, 0, 0, 0);
 
           // Calculate caffeine level at this hour
-          const caffeineAtHour = coffeeEntries.reduce((total, entry) => {
+          const caffeineAtHour = todaysEntries.reduce((total, entry) => {
             const timeElapsed =
               (hourTime.getTime() - entry.timestamp.getTime()) /
               (1000 * 60 * 60);
@@ -548,6 +580,7 @@ const HomeScreen = () => {
 
   const cortisolInfo = getCortisolWindow();
   const sleepInfo = getSleepImpactWindow();
+  const todaysEntries = getTodaysCoffeeEntries();
 
   return (
     <ScrollView style={styles.container}>
@@ -622,11 +655,14 @@ const HomeScreen = () => {
         {/* Current Caffeine Status */}
         <Card containerStyle={styles.statusCard}>
           <Text style={styles.statusTitle}>Current Caffeine Level</Text>
-          <Text style={styles.caffeineLevel}>
+          <Text style={styles.statusCardText}>
             {Math.round(getCurrentCaffeineLevel())}mg / 400mg daily limit
           </Text>
           {getCurrentCaffeineLevel() > 300 && (
             <Text style={styles.warningText}>⚠️ Approaching daily limit</Text>
+          )}
+          {getTodaysTotalCaffeine() > 400 && (
+            <Text style={styles.warningText}>⚠️ Daily limit exceeded</Text>
           )}
         </Card>
       </View>
@@ -634,10 +670,10 @@ const HomeScreen = () => {
       {/* Coffee Log */}
       <Card containerStyle={styles.logCard}>
         <Text style={styles.sectionTitle}>Today's Coffee Log</Text>
-        {coffeeEntries.length === 0 ? (
+        {todaysEntries.length === 0 ? (
           <Text style={styles.emptyLog}>No coffee logged today</Text>
         ) : (
-          coffeeEntries.map((entry) => (
+          todaysEntries.map((entry) => (
             <ListItem key={entry.id} containerStyle={styles.logItem}>
               <Icon name="local-cafe" color={theme.primary} />
               <ListItem.Content>
@@ -751,6 +787,72 @@ const styles = StyleSheet.create({
     borderRadius: CLOCK_SIZE / 2,
     backgroundColor: "white",
   },
+  centerDisplay: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -40 }, { translateY: 10 }],
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: 25,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  caffeineAmount: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: theme.primary,
+    lineHeight: 28,
+  },
+  caffeineUnit: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.primary,
+    marginTop: -5,
+  },
+  caffeineLabel: {
+    fontSize: 10,
+    color: theme.textLight,
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  digitalTime: {
+    position: "absolute",
+    top: "30%",
+    left: "50%",
+    transform: [{ translateX: -35 }, { translateY: -10 }],
+    backgroundColor: "rgba(139, 69, 19, 0.9)",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 15,
+  },
+  timeText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "white",
+  },
+  dailyStats: {
+    marginTop: 15,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: "rgba(139, 69, 19, 0.1)",
+    borderRadius: 15,
+    marginHorizontal: 20,
+  },
+  statsText: {
+    fontSize: 14,
+    color: theme.primary,
+    textAlign: "center",
+    fontWeight: "500",
+  },
   timeline: {
     paddingHorizontal: 20,
     marginVertical: 20,
@@ -782,50 +884,6 @@ const styles = StyleSheet.create({
     color: theme.primary,
     fontWeight: "bold",
   },
-  caffeineAmount: {
-    fontSize: 10,
-    color: theme.text,
-  },
-  centerDisplay: {
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-    top: "50%",
-    left: "50%",
-    transform: [{ translateX: -40 }, { translateY: 10 }],
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  caffeineLabel: {
-    fontSize: 10,
-    color: theme.textLight,
-    letterSpacing: 1,
-    marginTop: 2,
-  },
-  digitalTime: {
-    position: "absolute",
-    top: "30%",
-    left: "50%",
-    transform: [{ translateX: -35 }, { translateY: -10 }],
-    backgroundColor: "rgba(139, 69, 19, 0.9)",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 15,
-  },
-  timeText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "white",
-  },
   statusContainer: {
     paddingHorizontal: 20,
   },
@@ -847,6 +905,11 @@ const styles = StyleSheet.create({
     color: theme.text,
   },
   statusText: {
+    color: theme.textLight,
+    lineHeight: 22,
+    fontSize: 15,
+  },
+  statusCardText: {
     color: theme.textLight,
     lineHeight: 22,
     fontSize: 15,
@@ -948,7 +1011,7 @@ const styles = StyleSheet.create({
   enhancedLegend: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginTop: 25,
+    marginTop: 15,
     paddingHorizontal: 30,
     backgroundColor: "white",
     borderRadius: 20,
