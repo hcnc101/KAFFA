@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
+  AppState,
+  DeviceEventEmitter,
 } from "react-native";
 import { Text, Card, Button, Icon, Input, ListItem } from "@rneui/themed";
 import Svg, { Circle, Path, Text as SvgText, Line, G } from "react-native-svg";
@@ -46,7 +48,12 @@ interface CoffeeEntry {
   timestamp: Date;
   peakTime: Date;
   halfLifeTime: Date;
-  dateKey: string; // Add date key for daily tracking
+  dateKey: string;
+}
+
+interface ActivityLog {
+  timestamp: Date;
+  type: "app_active" | "significant_activity";
 }
 
 const HomeScreen = () => {
@@ -61,6 +68,11 @@ const HomeScreen = () => {
   const [showCoffeeModal, setShowCoffeeModal] = useState(false);
   const [showClockView, setShowClockView] = useState(true);
   const [currentDateKey, setCurrentDateKey] = useState(getDateKey(new Date()));
+  const [lastAppState, setLastAppState] = useState(AppState.currentState);
+  const [todaysWakeUpDetected, setTodaysWakeUpDetected] = useState(false);
+  const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
+  const [lastInactiveTime, setLastInactiveTime] = useState<Date | null>(null);
+  const [showWakeUpSettings, setShowWakeUpSettings] = useState(false);
 
   // Helper function to get date key (YYYY-MM-DD)
   function getDateKey(date: Date): string {
@@ -71,31 +83,145 @@ const HomeScreen = () => {
   const checkForNewDay = () => {
     const todayKey = getDateKey(new Date());
     if (todayKey !== currentDateKey) {
-      // New day detected - reset coffee entries
+      // New day detected - reset coffee entries and wake-up detection
       setCurrentDateKey(todayKey);
-      setCoffeeEntries([]); // Clear all entries for new day
-      console.log("New day detected, resetting coffee entries");
+      setCoffeeEntries([]);
+      setTodaysWakeUpDetected(false);
+      setActivityLog([]); // Reset activity log for new day
+      setLastInactiveTime(null);
+      console.log("New day detected, resetting all daily data");
     }
+  };
+
+  // Smart wake-up detection based on activity patterns
+  const detectWakeUpFromActivity = () => {
+    const now = new Date();
+    const todayKey = getDateKey(now);
+
+    // Only detect once per day and within reasonable hours (4 AM - 11 AM)
+    if (todaysWakeUpDetected || now.getHours() < 4 || now.getHours() > 11) {
+      return;
+    }
+
+    // Check if this is the first significant activity after a long period of inactivity
+    const lastActivity = activityLog[activityLog.length - 1];
+    const timeSinceLastActivity = lastActivity
+      ? (now.getTime() - lastActivity.timestamp.getTime()) / (1000 * 60 * 60)
+      : 8; // Default 8 hours
+
+    // Consider this wake-up if:
+    // 1. It's been more than 6 hours since last activity (assuming sleep)
+    // 2. It's morning hours
+    // 3. We haven't detected wake-up today yet
+    if (
+      timeSinceLastActivity >= 6 &&
+      now.getHours() >= 5 &&
+      now.getHours() <= 10
+    ) {
+      setWakeUpTime(now);
+      setTodaysWakeUpDetected(true);
+      console.log(`Smart wake-up detected: ${now.toLocaleTimeString()}`);
+
+      Alert.alert(
+        "Good Morning! 🌅",
+        `I detected your wake-up time as ${now.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })} based on your phone activity pattern. This will optimize your coffee timing recommendations.`,
+        [
+          { text: "Perfect! ✅" },
+          {
+            text: "Adjust Time ⚙️",
+            onPress: () => setShowWakeUpSettings(true),
+          },
+        ]
+      );
+    }
+  };
+
+  // Log activity when app becomes active
+  const logActivity = (type: "app_active" | "significant_activity") => {
+    const now = new Date();
+    const newActivity: ActivityLog = {
+      timestamp: now,
+      type: type,
+    };
+
+    setActivityLog((prev) => [...prev.slice(-10), newActivity]); // Keep last 10 activities
+
+    // Try to detect wake-up
+    detectWakeUpFromActivity();
+  };
+
+  // Enhanced app state detection
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: any) => {
+      const now = new Date();
+
+      if (
+        lastAppState.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        // App became active
+        logActivity("app_active");
+
+        // If it's been more than 4 hours since last activity, this might be wake-up
+        if (lastInactiveTime) {
+          const inactiveHours =
+            (now.getTime() - lastInactiveTime.getTime()) / (1000 * 60 * 60);
+          if (inactiveHours >= 4) {
+            console.log(
+              `Long inactivity detected: ${inactiveHours.toFixed(1)} hours`
+            );
+          }
+        }
+      } else if (nextAppState.match(/inactive|background/)) {
+        // App went to background
+        setLastInactiveTime(now);
+      }
+
+      setLastAppState(nextAppState);
+    };
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+
+    // Log initial activity
+    logActivity("app_active");
+
+    return () => subscription?.remove();
+  }, [lastAppState, todaysWakeUpDetected, activityLog, lastInactiveTime]);
+
+  // Manual wake-up time adjustment
+  const adjustWakeUpTime = (adjustment: number) => {
+    const newWakeUpTime = new Date(
+      wakeUpTime.getTime() + adjustment * 60 * 60000
+    ); // adjustment in hours
+    setWakeUpTime(newWakeUpTime);
+    console.log(
+      `Wake-up time adjusted to: ${newWakeUpTime.toLocaleTimeString()}`
+    );
   };
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-      checkForNewDay(); // Check for day change
-    }, 10000); // Update every 10 seconds
+      checkForNewDay();
+    }, 5000);
 
     return () => clearInterval(timer);
   }, [currentDateKey]);
 
-  // Load coffee entries for today only
   useEffect(() => {
-    checkForNewDay(); // Check on component mount
+    checkForNewDay();
   }, []);
 
   const addCoffeeEntry = (coffeeType: any) => {
     const now = new Date();
-    const peakTime = new Date(now.getTime() + 45 * 60000); // Peak at 45 minutes
-    const halfLifeTime = new Date(now.getTime() + 5.5 * 60 * 60000); // Half-life at 5.5 hours
+    const peakTime = new Date(now.getTime() + 45 * 60000);
+    const halfLifeTime = new Date(now.getTime() + 5.5 * 60 * 60000);
 
     const entry: CoffeeEntry = {
       id: Date.now().toString(),
@@ -104,12 +230,17 @@ const HomeScreen = () => {
       timestamp: now,
       peakTime,
       halfLifeTime,
-      dateKey: getDateKey(now), // Track which day this entry belongs to
+      dateKey: getDateKey(now),
     };
 
     console.log("Adding coffee entry:", entry);
     setCoffeeEntries((prev) => [...prev, entry]);
     setShowCoffeeModal(false);
+
+    // Log significant activity (coffee consumption)
+    logActivity("significant_activity");
+
+    setCurrentTime(new Date());
   };
 
   // Get today's coffee entries only
@@ -126,26 +257,48 @@ const HomeScreen = () => {
       return 0;
     }
 
-    const totalCaffeine = todaysEntries.reduce((total, entry) => {
+    let totalCaffeine = 0;
+    console.log("=== CAFFEINE CALCULATION DEBUG ===");
+
+    todaysEntries.forEach((entry, index) => {
       const timeElapsed = (now - entry.timestamp.getTime()) / (1000 * 60 * 60); // Hours
+      console.log(
+        `Coffee ${index + 1}: ${entry.type} (${
+          entry.caffeine
+        }mg) - ${timeElapsed.toFixed(2)} hours ago`
+      );
 
-      if (timeElapsed < 0) return total;
-      if (timeElapsed > 24) return total; // Caffeine effectively gone after 24 hours
+      if (timeElapsed < 0) {
+        console.log("  -> Future entry, skipping");
+        return;
+      }
 
-      // Caffeine absorption and decay model
+      if (timeElapsed > 24) {
+        console.log("  -> Too old (>24h), skipping");
+        return;
+      }
+
       let currentLevel;
       if (timeElapsed <= 0.75) {
-        // Absorption phase (0-45 minutes) - linear increase
+        // Absorption phase (0-45 minutes)
         currentLevel = entry.caffeine * (timeElapsed / 0.75);
+        console.log(`  -> Absorption phase: ${currentLevel.toFixed(1)}mg`);
       } else {
         // Decay phase (half-life of 5.5 hours)
         const decayTime = timeElapsed - 0.75;
         currentLevel = entry.caffeine * Math.pow(0.5, decayTime / 5.5);
+        console.log(
+          `  -> Decay phase (${decayTime.toFixed(
+            2
+          )}h decay): ${currentLevel.toFixed(1)}mg`
+        );
       }
 
-      return total + currentLevel;
-    }, 0);
+      totalCaffeine += currentLevel;
+      console.log(`  -> Running total: ${totalCaffeine.toFixed(1)}mg`);
+    });
 
+    console.log(`FINAL TOTAL: ${totalCaffeine.toFixed(1)}mg`);
     return totalCaffeine;
   };
 
@@ -172,23 +325,31 @@ const HomeScreen = () => {
     const centerX = CLOCK_SIZE / 2;
     const centerY = CLOCK_SIZE / 2;
     const currentCaffeine = getCurrentCaffeineLevel();
-    const maxCaffeine = 400; // FDA recommended daily limit
+    const maxCaffeine = 400;
 
     // Calculate caffeine level as percentage of max safe amount
     const caffeinePercentage = Math.min(currentCaffeine / maxCaffeine, 1);
     const caffeineAngle = caffeinePercentage * 360;
 
-    // Helper function to convert time to angle
+    console.log(
+      `RENDERING: ${currentCaffeine.toFixed(
+        1
+      )}mg caffeine, ${caffeineAngle.toFixed(1)}° arc`
+    );
+
     const timeToAngle = (hours: number, minutes: number = 0) => {
       return (hours % 12) * 30 + minutes * 0.5 - 90;
     };
 
-    // Helper function to create arc path
     const createArcPath = (
       startAngle: number,
       endAngle: number,
       radius: number
     ) => {
+      if (Math.abs(endAngle - startAngle) < 0.1) {
+        return "";
+      }
+
       const startX = centerX + radius * Math.cos((startAngle * Math.PI) / 180);
       const startY = centerY + radius * Math.sin((startAngle * Math.PI) / 180);
       const endX = centerX + radius * Math.cos((endAngle * Math.PI) / 180);
@@ -201,10 +362,9 @@ const HomeScreen = () => {
 
     return (
       <View style={styles.clockContainer}>
-        {/* Clock face background */}
         <View style={styles.clockFace}>
           <Svg width={CLOCK_SIZE} height={CLOCK_SIZE}>
-            {/* Outer clock ring with gradient effect */}
+            {/* Background */}
             <Circle
               cx={centerX}
               cy={centerY}
@@ -213,8 +373,6 @@ const HomeScreen = () => {
               stroke="#E0E0E0"
               strokeWidth="3"
             />
-
-            {/* Inner clock face */}
             <Circle
               cx={centerX}
               cy={centerY}
@@ -224,7 +382,7 @@ const HomeScreen = () => {
               strokeWidth="1"
             />
 
-            {/* Cortisol Window (90 minutes after wake up) */}
+            {/* CORTISOL WINDOW - Make it always visible for debugging */}
             {(() => {
               const wakeHour = wakeUpTime.getHours();
               const wakeMinute = wakeUpTime.getMinutes();
@@ -235,19 +393,23 @@ const HomeScreen = () => {
               const startAngle = timeToAngle(wakeHour, wakeMinute);
               const endAngle = timeToAngle(endHour, endMinute);
 
+              console.log(
+                `CORTISOL: Wake ${wakeHour}:${wakeMinute} -> ${endHour}:${endMinute} (${startAngle}° to ${endAngle}°)`
+              );
+
               return (
                 <Path
                   d={createArcPath(startAngle, endAngle, CLOCK_RADIUS - 8)}
                   fill="none"
                   stroke={theme.cortisol}
-                  strokeWidth="16"
-                  strokeOpacity="0.8"
+                  strokeWidth="20"
+                  strokeOpacity="0.9"
                   strokeLinecap="round"
                 />
               );
             })()}
 
-            {/* Sleep Impact Window (6 hours before bedtime) */}
+            {/* SLEEP IMPACT WINDOW */}
             {(() => {
               const bedHour = bedTime.getHours();
               const bedMinute = bedTime.getMinutes();
@@ -267,62 +429,122 @@ const HomeScreen = () => {
                   d={createArcPath(startAngle, endAngle, CLOCK_RADIUS - 8)}
                   fill="none"
                   stroke={theme.sleep}
-                  strokeWidth="16"
-                  strokeOpacity="0.8"
+                  strokeWidth="20"
+                  strokeOpacity="0.9"
                   strokeLinecap="round"
                 />
               );
             })()}
 
-            {/* Hour markers - bigger and more visible */}
-            {Array.from({ length: 12 }, (_, i) => {
-              const angle = i * 30 - 90;
-              const isMainHour = i % 3 === 0; // 12, 3, 6, 9
-              const markerLength = isMainHour ? 25 : 15;
-              const strokeWidth = isMainHour ? 3 : 2;
+            {/* INDIVIDUAL COFFEE HALF-LIFE ARCS - THE MAIN FEATURE! */}
+            {getTodaysCoffeeEntries().map((entry, index) => {
+              const now = currentTime.getTime();
+              const timeElapsed =
+                (now - entry.timestamp.getTime()) / (1000 * 60 * 60);
 
-              const x1 =
-                centerX +
-                (CLOCK_RADIUS - markerLength - 15) *
-                  Math.cos((angle * Math.PI) / 180);
-              const y1 =
-                centerY +
-                (CLOCK_RADIUS - markerLength - 15) *
-                  Math.sin((angle * Math.PI) / 180);
-              const x2 =
-                centerX +
-                (CLOCK_RADIUS - 15) * Math.cos((angle * Math.PI) / 180);
-              const y2 =
-                centerY +
-                (CLOCK_RADIUS - 15) * Math.sin((angle * Math.PI) / 180);
+              if (timeElapsed < 0 || timeElapsed > 24) return null;
+
+              // Calculate current level for this specific coffee
+              let currentLevel;
+              if (timeElapsed <= 0.75) {
+                currentLevel = entry.caffeine * (timeElapsed / 0.75);
+              } else {
+                const decayTime = timeElapsed - 0.75;
+                currentLevel = entry.caffeine * Math.pow(0.5, decayTime / 5.5);
+              }
+
+              // Show the entire half-life curve, not just remaining
+              const totalHalfLifeHours = 12; // Show 12 hours of decay
+              const maxAngle = 120; // Use more of the circle
+
+              // Create a decay curve showing the full half-life
+              const decayArcs = [];
+              for (let hour = 0; hour <= totalHalfLifeHours; hour += 0.5) {
+                if (hour < timeElapsed) continue; // Don't show past
+
+                const futureDecayTime = hour - 0.75;
+                let futureLevel;
+                if (hour <= 0.75) {
+                  futureLevel = entry.caffeine * (hour / 0.75);
+                } else {
+                  futureLevel =
+                    entry.caffeine * Math.pow(0.5, futureDecayTime / 5.5);
+                }
+
+                const levelPercentage = futureLevel / entry.caffeine;
+                const opacity = Math.max(0.2, levelPercentage);
+
+                if (levelPercentage > 0.01) {
+                  // Only show if significant
+                  const hourAngle = (hour / totalHalfLifeHours) * maxAngle;
+                  const radius = CLOCK_RADIUS - 40 - index * 12;
+
+                  decayArcs.push(
+                    <Circle
+                      key={`decay-${entry.id}-${hour}`}
+                      cx={
+                        centerX +
+                        radius * Math.cos(((hourAngle - 90) * Math.PI) / 180)
+                      }
+                      cy={
+                        centerY +
+                        radius * Math.sin(((hourAngle - 90) * Math.PI) / 180)
+                      }
+                      r="3"
+                      fill={theme.caffeine}
+                      opacity={opacity}
+                    />
+                  );
+                }
+              }
 
               return (
-                <Line
-                  key={i}
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  stroke={theme.text}
-                  strokeWidth={strokeWidth}
-                  strokeLinecap="round"
-                />
+                <G key={`coffee-visualization-${entry.id}`}>
+                  {decayArcs}
+                  {/* Current level indicator */}
+                  <Circle
+                    cx={
+                      centerX +
+                      (CLOCK_RADIUS - 40 - index * 12) *
+                        Math.cos(
+                          (((timeElapsed / totalHalfLifeHours) * maxAngle -
+                            90) *
+                            Math.PI) /
+                            180
+                        )
+                    }
+                    cy={
+                      centerY +
+                      (CLOCK_RADIUS - 40 - index * 12) *
+                        Math.sin(
+                          (((timeElapsed / totalHalfLifeHours) * maxAngle -
+                            90) *
+                            Math.PI) /
+                            180
+                        )
+                    }
+                    r="6"
+                    fill={theme.caffeine}
+                    stroke="white"
+                    strokeWidth="2"
+                  />
+                </G>
               );
             })}
 
-            {/* Hour numbers with backgrounds for better visibility */}
+            {/* Hour markers and numbers */}
             {Array.from({ length: 12 }, (_, i) => {
-              const hour = i === 0 ? 12 : i;
               const angle = i * 30 - 90;
-              const numberRadius = CLOCK_RADIUS - 40;
+              const hour = i === 0 ? 12 : i;
               const x =
-                centerX + numberRadius * Math.cos((angle * Math.PI) / 180);
+                centerX +
+                (CLOCK_RADIUS - 30) * Math.cos((angle * Math.PI) / 180);
               const y =
-                centerY + numberRadius * Math.sin((angle * Math.PI) / 180);
+                centerY +
+                (CLOCK_RADIUS - 30) * Math.sin((angle * Math.PI) / 180);
 
               return (
-                <G key={`hour-${i}`}>
-                  {/* Background circle for number */}
+                <G key={i}>
                   <Circle
                     cx={x}
                     cy={y}
@@ -332,12 +554,11 @@ const HomeScreen = () => {
                     strokeWidth="1"
                     opacity="0.9"
                   />
-                  {/* Hour number */}
                   <SvgText
                     x={x}
                     y={y + 6}
                     textAnchor="middle"
-                    fontSize="20"
+                    fontSize="16"
                     fontWeight="bold"
                     fill={theme.text}
                   >
@@ -347,98 +568,63 @@ const HomeScreen = () => {
               );
             })}
 
-            {/* Caffeine level arc - more prominent */}
-            {currentCaffeine > 0 && (
-              <Path
-                d={createArcPath(-90, -90 + caffeineAngle, CLOCK_RADIUS - 30)}
-                fill="none"
-                stroke={theme.caffeine}
-                strokeWidth="12"
-                strokeLinecap="round"
-                opacity="0.9"
-              />
-            )}
+            {/* MAIN CAFFEINE LEVEL ARC - Make it always visible */}
+            <Path
+              d={createArcPath(-90, -90 + caffeineAngle, CLOCK_RADIUS - 25)}
+              fill="none"
+              stroke={theme.caffeine}
+              strokeWidth="15"
+              strokeLinecap="round"
+              opacity="1"
+            />
 
-            {/* Clock hands with better styling */}
+            {/* Clock hands */}
             {(() => {
               const hours = currentTime.getHours();
               const minutes = currentTime.getMinutes();
-
-              // Hour hand
               const hourAngle = (hours % 12) * 30 + minutes * 0.5 - 90;
-              const hourX =
-                centerX +
-                (CLOCK_RADIUS - 80) * Math.cos((hourAngle * Math.PI) / 180);
-              const hourY =
-                centerY +
-                (CLOCK_RADIUS - 80) * Math.sin((hourAngle * Math.PI) / 180);
-
-              // Minute hand
               const minuteAngle = minutes * 6 - 90;
-              const minuteX =
-                centerX +
-                (CLOCK_RADIUS - 60) * Math.cos((minuteAngle * Math.PI) / 180);
-              const minuteY =
-                centerY +
-                (CLOCK_RADIUS - 60) * Math.sin((minuteAngle * Math.PI) / 180);
 
               return (
                 <G>
-                  {/* Hour hand shadow */}
                   <Line
-                    x1={centerX + 2}
-                    y1={centerY + 2}
-                    x2={hourX + 2}
-                    y2={hourY + 2}
-                    stroke="rgba(0,0,0,0.2)"
-                    strokeWidth="6"
-                    strokeLinecap="round"
-                  />
-                  {/* Minute hand shadow */}
-                  <Line
-                    x1={centerX + 2}
-                    y1={centerY + 2}
-                    x2={minuteX + 2}
-                    y2={minuteY + 2}
-                    stroke="rgba(0,0,0,0.2)"
+                    x1={centerX}
+                    y1={centerY}
+                    x2={
+                      centerX +
+                      (CLOCK_RADIUS - 80) *
+                        Math.cos((hourAngle * Math.PI) / 180)
+                    }
+                    y2={
+                      centerY +
+                      (CLOCK_RADIUS - 80) *
+                        Math.sin((hourAngle * Math.PI) / 180)
+                    }
+                    stroke={theme.primary}
                     strokeWidth="4"
                     strokeLinecap="round"
                   />
-
-                  {/* Hour hand */}
                   <Line
                     x1={centerX}
                     y1={centerY}
-                    x2={hourX}
-                    y2={hourY}
-                    stroke={theme.primary}
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                  />
-                  {/* Minute hand */}
-                  <Line
-                    x1={centerX}
-                    y1={centerY}
-                    x2={minuteX}
-                    y2={minuteY}
-                    stroke={theme.primary}
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                  />
-
-                  {/* Center dot with border */}
-                  <Circle
-                    cx={centerX}
-                    cy={centerY}
-                    r="8"
-                    fill="white"
+                    x2={
+                      centerX +
+                      (CLOCK_RADIUS - 60) *
+                        Math.cos((minuteAngle * Math.PI) / 180)
+                    }
+                    y2={
+                      centerY +
+                      (CLOCK_RADIUS - 60) *
+                        Math.sin((minuteAngle * Math.PI) / 180)
+                    }
                     stroke={theme.primary}
                     strokeWidth="2"
+                    strokeLinecap="round"
                   />
                   <Circle
                     cx={centerX}
                     cy={centerY}
-                    r="4"
+                    r="6"
                     fill={theme.primary}
                   />
                 </G>
@@ -446,16 +632,16 @@ const HomeScreen = () => {
             })()}
           </Svg>
 
-          {/* Center caffeine display - redesigned */}
+          {/* Center caffeine display - FIXED */}
           <View style={styles.centerDisplay}>
             <Text style={styles.caffeineAmount}>
               {Math.round(currentCaffeine)}
             </Text>
             <Text style={styles.caffeineUnit}>mg</Text>
-            <Text style={styles.caffeineLabel}>CAFFEINE</Text>
+            <Text style={styles.caffeineLabel}>CURRENT</Text>
           </View>
 
-          {/* Digital time display - repositioned */}
+          {/* Digital time */}
           <View style={styles.digitalTime}>
             <Text style={styles.timeText}>
               {currentTime.toLocaleTimeString([], {
@@ -467,34 +653,56 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        {/* Daily stats */}
-        <View style={styles.dailyStats}>
-          <Text style={styles.statsText}>
-            Today: {getTodaysCoffeeEntries().length} drinks •{" "}
-            {Math.round(getTodaysTotalCaffeine())}mg total
+        {/* Simplified stats - focus on half-life */}
+        <View style={styles.halfLifeStats}>
+          <Text style={styles.halfLifeTitle}>☕ Half-Life Tracker</Text>
+          <Text style={styles.halfLifeText}>
+            Each dot shows caffeine decay over 12 hours. Larger dots = more
+            caffeine remaining.
           </Text>
         </View>
 
-        {/* Enhanced legend */}
-        <View style={styles.enhancedLegend}>
-          <View style={styles.enhancedLegendItem}>
-            <View
-              style={[styles.legendDot, { backgroundColor: theme.cortisol }]}
-            />
-            <Text style={styles.enhancedLegendText}>Cortisol Peak</Text>
-          </View>
-          <View style={styles.enhancedLegendItem}>
-            <View
-              style={[styles.legendDot, { backgroundColor: theme.sleep }]}
-            />
-            <Text style={styles.enhancedLegendText}>Sleep Impact</Text>
-          </View>
-          <View style={styles.enhancedLegendItem}>
-            <View
-              style={[styles.legendDot, { backgroundColor: theme.caffeine }]}
-            />
-            <Text style={styles.enhancedLegendText}>Caffeine Level</Text>
-          </View>
+        {/* Coffee entries with half-life info */}
+        <View style={styles.coffeeList}>
+          {getTodaysCoffeeEntries().map((entry, index) => {
+            const now = currentTime.getTime();
+            const timeElapsed =
+              (now - entry.timestamp.getTime()) / (1000 * 60 * 60);
+            let currentLevel = 0;
+
+            if (timeElapsed >= 0 && timeElapsed <= 24) {
+              if (timeElapsed <= 0.75) {
+                currentLevel = entry.caffeine * (timeElapsed / 0.75);
+              } else {
+                const decayTime = timeElapsed - 0.75;
+                currentLevel = entry.caffeine * Math.pow(0.5, decayTime / 5.5);
+              }
+            }
+
+            return (
+              <View key={entry.id} style={styles.coffeeEntry}>
+                <Text style={styles.coffeeTime}>
+                  {entry.timestamp.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Text>
+                <Text style={styles.coffeeType}>{entry.type}</Text>
+                <Text style={styles.coffeeLevels}>
+                  {Math.round(currentLevel)}mg / {entry.caffeine}mg
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Simplified legend */}
+        <View style={styles.simpleLegend}>
+          <Text style={styles.legendTitle}>🧠 Coffee Science</Text>
+          <Text style={styles.legendExplain}>
+            • Teal: Don't drink coffee (cortisol peak){"\n"}• Purple: Affects
+            sleep if consumed{"\n"}• Orange: Current caffeine + half-life decay
+          </Text>
         </View>
       </View>
     );
@@ -515,7 +723,6 @@ const HomeScreen = () => {
           const hourTime = new Date();
           hourTime.setHours(hour, 0, 0, 0);
 
-          // Calculate caffeine level at this hour
           const caffeineAtHour = todaysEntries.reduce((total, entry) => {
             const timeElapsed =
               (hourTime.getTime() - entry.timestamp.getTime()) /
@@ -616,7 +823,6 @@ const HomeScreen = () => {
 
       {/* Status Cards */}
       <View style={styles.statusContainer}>
-        {/* Cortisol Warning */}
         {cortisolInfo.isInWindow && (
           <Card
             containerStyle={[
@@ -636,7 +842,6 @@ const HomeScreen = () => {
           </Card>
         )}
 
-        {/* Sleep Impact Warning */}
         {sleepInfo.isInWindow && (
           <Card
             containerStyle={[
@@ -652,7 +857,6 @@ const HomeScreen = () => {
           </Card>
         )}
 
-        {/* Current Caffeine Status */}
         <Card containerStyle={styles.statusCard}>
           <Text style={styles.statusTitle}>Current Caffeine Level</Text>
           <Text style={styles.statusCardText}>
@@ -733,6 +937,67 @@ const HomeScreen = () => {
               title="Cancel"
               onPress={() => setShowCoffeeModal(false)}
               buttonStyle={styles.cancelButton}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Wake-up Time Settings Modal */}
+      <Modal
+        visible={showWakeUpSettings}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowWakeUpSettings(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Adjust Wake-up Time</Text>
+            <Text style={styles.currentWakeUpText}>
+              Current:{" "}
+              {wakeUpTime.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+
+            <View style={styles.adjustmentButtons}>
+              <TouchableOpacity
+                style={styles.timeAdjustButton}
+                onPress={() => adjustWakeUpTime(-1)}
+              >
+                <Text style={styles.adjustButtonText}>-1 Hour</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.timeAdjustButton}
+                onPress={() => adjustWakeUpTime(-0.5)}
+              >
+                <Text style={styles.adjustButtonText}>-30 Min</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.timeAdjustButton}
+                onPress={() => adjustWakeUpTime(0.5)}
+              >
+                <Text style={styles.adjustButtonText}>+30 Min</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.timeAdjustButton}
+                onPress={() => adjustWakeUpTime(1)}
+              >
+                <Text style={styles.adjustButtonText}>+1 Hour</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Button
+              title="Done"
+              onPress={() => setShowWakeUpSettings(false)}
+              buttonStyle={[
+                styles.cancelButton,
+                { backgroundColor: theme.primary },
+              ]}
+              titleStyle={{ color: "white" }}
             />
           </View>
         </View>
@@ -839,6 +1104,28 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "white",
   },
+  wakeUpDisplay: {
+    marginTop: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    backgroundColor: "rgba(76, 205, 196, 0.15)",
+    borderRadius: 20,
+    marginHorizontal: 20,
+    borderWidth: 1,
+    borderColor: theme.cortisol + "40",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  wakeUpText: {
+    fontSize: 13,
+    color: theme.cortisol,
+    fontWeight: "600",
+    flex: 1,
+  },
+  adjustButton: {
+    padding: 4,
+  },
   dailyStats: {
     marginTop: 15,
     paddingHorizontal: 20,
@@ -852,6 +1139,30 @@ const styles = StyleSheet.create({
     color: theme.primary,
     textAlign: "center",
     fontWeight: "500",
+  },
+  currentWakeUpText: {
+    fontSize: 18,
+    textAlign: "center",
+    marginBottom: 20,
+    color: theme.primary,
+    fontWeight: "600",
+  },
+  adjustmentButtons: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
+    marginBottom: 20,
+  },
+  timeAdjustButton: {
+    backgroundColor: theme.surface,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 20,
+    margin: 5,
+  },
+  adjustButtonText: {
+    color: theme.primary,
+    fontWeight: "600",
   },
   timeline: {
     paddingHorizontal: 20,
@@ -1043,6 +1354,88 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.text,
     fontWeight: "500",
+  },
+  halfLifeStats: {
+    marginTop: 15,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: "rgba(255, 107, 53, 0.1)",
+    borderRadius: 15,
+    marginHorizontal: 20,
+    borderWidth: 1,
+    borderColor: theme.caffeine + "40",
+  },
+  halfLifeTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: theme.caffeine,
+    textAlign: "center",
+    marginBottom: 5,
+  },
+  halfLifeText: {
+    fontSize: 13,
+    color: theme.caffeine,
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  coffeeList: {
+    marginHorizontal: 20,
+    marginTop: 15,
+  },
+  coffeeEntry: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    backgroundColor: "white",
+    borderRadius: 10,
+    marginBottom: 8,
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  coffeeTime: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.primary,
+    flex: 1,
+  },
+  coffeeType: {
+    fontSize: 14,
+    color: theme.text,
+    flex: 2,
+  },
+  coffeeLevels: {
+    fontSize: 12,
+    color: theme.caffeine,
+    fontWeight: "600",
+    flex: 1,
+    textAlign: "right",
+  },
+  simpleLegend: {
+    marginHorizontal: 20,
+    marginTop: 15,
+    marginBottom: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    backgroundColor: "rgba(139, 69, 19, 0.05)",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: theme.primary + "20",
+  },
+  legendTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: theme.primary,
+    marginBottom: 8,
+  },
+  legendExplain: {
+    fontSize: 12,
+    color: theme.textLight,
+    lineHeight: 16,
   },
 });
 
