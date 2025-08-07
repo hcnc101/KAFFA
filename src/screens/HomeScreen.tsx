@@ -75,6 +75,7 @@ const HomeScreen = () => {
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [lastInactiveTime, setLastInactiveTime] = useState<Date | null>(null);
   const [showWakeUpSettings, setShowWakeUpSettings] = useState(false);
+  const [show24Hour, setShow24Hour] = useState(false); // Add 24hr toggle
 
   // Helper function to get date key (YYYY-MM-DD)
   function getDateKey(date: Date): string {
@@ -364,14 +365,13 @@ const HomeScreen = () => {
     const caffeinePercentage = Math.min(currentCaffeine / maxCaffeine, 1);
     const caffeineAngle = caffeinePercentage * 360;
 
-    console.log(
-      `RENDERING: ${currentCaffeine.toFixed(
-        1
-      )}mg caffeine, ${caffeineAngle.toFixed(1)}° arc`
-    );
-
+    // Update timeToAngle for 24hr support
     const timeToAngle = (hours: number, minutes: number = 0) => {
-      return (hours % 12) * 30 + minutes * 0.5 - 90;
+      if (show24Hour) {
+        return hours * 15 + minutes * 0.25 - 90; // 360/24 = 15 degrees per hour
+      } else {
+        return (hours % 12) * 30 + minutes * 0.5 - 90; // 360/12 = 30 degrees per hour
+      }
     };
 
     const createArcPath = (
@@ -438,12 +438,10 @@ const HomeScreen = () => {
               const startHour = Math.floor(
                 (bedHour * 60 + bedMinute - 360) / 60
               );
-              const startMinute = bedMinute;
+              const adjustedStartHour =
+                startHour >= 0 ? startHour : startHour + 24;
 
-              const startAngle = timeToAngle(
-                startHour >= 0 ? startHour : startHour + 24,
-                startMinute
-              );
+              const startAngle = timeToAngle(adjustedStartHour, bedMinute);
               const endAngle = timeToAngle(bedHour, bedMinute);
 
               return (
@@ -524,34 +522,76 @@ const HomeScreen = () => {
               );
             })}
 
-            {/* Simplified hour markers - only show 12, 3, 6, 9 */}
-            {[0, 3, 6, 9].map((i) => {
-              const angle = i * 30 - 90;
-              const hour = i === 0 ? 12 : i;
+            {/* Hour markers - 12hr vs 24hr */}
+            {show24Hour
+              ? [0, 6, 12, 18].map((i) => {
+                  // Show 0, 6, 12, 18 for 24hr
+                  const angle = i * 15 - 90; // 360/24 = 15 degrees per hour
+                  const hour = i;
+                  const markerStart = CLOCK_RADIUS - 20;
+                  const markerEnd = CLOCK_RADIUS - 5;
 
-              // Markers
-              const markerStart = CLOCK_RADIUS - 20;
-              const markerEnd = CLOCK_RADIUS - 5;
+                  return (
+                    <Line
+                      key={`marker-${i}`}
+                      x1={
+                        centerX +
+                        markerStart * Math.cos((angle * Math.PI) / 180)
+                      }
+                      y1={
+                        centerY +
+                        markerStart * Math.sin((angle * Math.PI) / 180)
+                      }
+                      x2={
+                        centerX + markerEnd * Math.cos((angle * Math.PI) / 180)
+                      }
+                      y2={
+                        centerY + markerEnd * Math.sin((angle * Math.PI) / 180)
+                      }
+                      stroke="#666"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+                  );
+                })
+              : [0, 3, 6, 9].map((i) => {
+                  // Show 12, 3, 6, 9 for 12hr
+                  const angle = i * 30 - 90;
+                  const markerStart = CLOCK_RADIUS - 20;
+                  const markerEnd = CLOCK_RADIUS - 5;
 
-              return (
-                <Line
-                  key={`marker-${i}`}
-                  x1={centerX + markerStart * Math.cos((angle * Math.PI) / 180)}
-                  y1={centerY + markerStart * Math.sin((angle * Math.PI) / 180)}
-                  x2={centerX + markerEnd * Math.cos((angle * Math.PI) / 180)}
-                  y2={centerY + markerEnd * Math.sin((angle * Math.PI) / 180)}
-                  stroke="#666"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                />
-              );
-            })}
+                  return (
+                    <Line
+                      key={`marker-${i}`}
+                      x1={
+                        centerX +
+                        markerStart * Math.cos((angle * Math.PI) / 180)
+                      }
+                      y1={
+                        centerY +
+                        markerStart * Math.sin((angle * Math.PI) / 180)
+                      }
+                      x2={
+                        centerX + markerEnd * Math.cos((angle * Math.PI) / 180)
+                      }
+                      y2={
+                        centerY + markerEnd * Math.sin((angle * Math.PI) / 180)
+                      }
+                      stroke="#666"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+                  );
+                })}
 
-            {/* Clock hands - simplified */}
+            {/* Clock hands - updated for 24hr */}
             {(() => {
               const hours = currentTime.getHours();
               const minutes = currentTime.getMinutes();
-              const hourAngle = (hours % 12) * 30 + minutes * 0.5 - 90;
+
+              const hourAngle = show24Hour
+                ? hours * 15 + minutes * 0.25 - 90 // 24hr: 15 degrees per hour
+                : (hours % 12) * 30 + minutes * 0.5 - 90; // 12hr: 30 degrees per hour
               const minuteAngle = minutes * 6 - 90;
 
               return (
@@ -594,7 +634,8 @@ const HomeScreen = () => {
                     strokeLinecap="round"
                   />
 
-                  {/* REMOVED: Center dot - no more stop sign! */}
+                  {/* Center dot */}
+                  <Circle cx={centerX} cy={centerY} r="8" fill="#8B4513" />
                 </G>
               );
             })()}
@@ -617,8 +658,13 @@ const HomeScreen = () => {
           </View>
 
           {/* OUTSIDE NUMBERS - Much more readable */}
-          {[12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((hour, i) => {
-            const angle = i * 30 - 90;
+          {(show24Hour
+            ? Array.from({ length: 24 }, (_, i) => i) // [0,1,2,...,23]
+            : [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+          ).map((hour, index) => {
+            const angle = show24Hour
+              ? hour * 15 - 90 // 24hr: 15 degrees per hour
+              : index * 30 - 90; // 12hr: 30 degrees per hour
             const numberRadius = CLOCK_RADIUS + 25; // OUTSIDE the clock
             const x =
               centerX + numberRadius * Math.cos((angle * Math.PI) / 180);
@@ -627,7 +673,7 @@ const HomeScreen = () => {
 
             return (
               <View
-                key={hour}
+                key={`${show24Hour ? "24h" : "12h"}-${hour}-${index}`} // UNIQUE KEY FIX
                 style={[
                   styles.clockNumber,
                   {
@@ -637,7 +683,14 @@ const HomeScreen = () => {
                   },
                 ]}
               >
-                <Text style={styles.clockNumberText}>{hour}</Text>
+                <Text
+                  style={[
+                    styles.clockNumberText,
+                    show24Hour && styles.clockNumber24Text, // Smaller text for 24hr
+                  ]}
+                >
+                  {show24Hour ? hour : hour === 0 ? 12 : hour}
+                </Text>
               </View>
             );
           })}
@@ -804,30 +857,77 @@ const HomeScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
-      {/* BACK TO ORIGINAL HEADER */}
+      {/* Enhanced header with 12hr/24hr toggle */}
       <View style={styles.header}>
         <Text style={styles.title}>Coffee Science Tracker</Text>
-        <View style={styles.viewToggle}>
-          <TouchableOpacity
-            onPress={() => setShowClockView(true)}
-            style={[styles.toggleButton, showClockView && styles.activeToggle]}
-          >
-            <Icon
-              name="schedule"
-              size={20}
-              color={showClockView ? "white" : theme.text}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setShowClockView(false)}
-            style={[styles.toggleButton, !showClockView && styles.activeToggle]}
-          >
-            <Icon
-              name="timeline"
-              size={20}
-              color={!showClockView ? "white" : theme.text}
-            />
-          </TouchableOpacity>
+        <View style={styles.toggleContainer}>
+          {/* Clock type toggle */}
+          <View style={styles.viewToggle}>
+            <TouchableOpacity
+              onPress={() => setShowClockView(true)}
+              style={[
+                styles.toggleButton,
+                showClockView && styles.activeToggle,
+              ]}
+            >
+              <Icon
+                name="schedule"
+                size={18}
+                color={showClockView ? "white" : theme.text}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowClockView(false)}
+              style={[
+                styles.toggleButton,
+                !showClockView && styles.activeToggle,
+              ]}
+            >
+              <Icon
+                name="timeline"
+                size={18}
+                color={!showClockView ? "white" : theme.text}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* 12hr/24hr toggle - only show when clock view is active */}
+          {showClockView && (
+            <View style={styles.hourToggle}>
+              <TouchableOpacity
+                onPress={() => setShow24Hour(false)}
+                style={[
+                  styles.hourToggleButton,
+                  !show24Hour && styles.activeHourToggle,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.hourToggleText,
+                    !show24Hour && styles.activeHourToggleText,
+                  ]}
+                >
+                  12h
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShow24Hour(true)}
+                style={[
+                  styles.hourToggleButton,
+                  show24Hour && styles.activeHourToggle,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.hourToggleText,
+                    show24Hour && styles.activeHourToggleText,
+                  ]}
+                >
+                  24h
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
 
@@ -1675,6 +1775,43 @@ const styles = StyleSheet.create({
 
   progressRing: {
     position: "absolute",
+  },
+  toggleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  hourToggle: {
+    flexDirection: "row",
+    backgroundColor: theme.surface,
+    borderRadius: 16,
+    padding: 2,
+  },
+
+  hourToggleButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+
+  activeHourToggle: {
+    backgroundColor: theme.accent,
+  },
+
+  hourToggleText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.textLight,
+  },
+
+  activeHourToggleText: {
+    color: "white",
+  },
+
+  clockNumber24Text: {
+    fontSize: 14, // Smaller text for 24hr numbers
+    fontWeight: "600",
   },
 });
 
