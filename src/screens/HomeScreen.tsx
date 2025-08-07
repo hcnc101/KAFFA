@@ -408,7 +408,7 @@ const HomeScreen = () => {
               strokeWidth="2"
             />
 
-            {/* IMPROVED HALF-LIFE ARCS - Start from logging position */}
+            {/* IMPROVED HALF-LIFE ARCS with Sleep Conflict Detection */}
             {getTodaysCoffeeEntries().map((entry, index) => {
               const now = currentTime.getTime();
               const timeElapsed =
@@ -427,14 +427,12 @@ const HomeScreen = () => {
 
               if (currentLevel < 1) return null;
 
-              // FIXED: Start arc from LOGGING time, not from current position
+              // Arc positioning
               const logTime = entry.timestamp;
               const startAngle = timeToAngle(
                 logTime.getHours(),
                 logTime.getMinutes()
               );
-
-              // Show decay for next 12 hours from logging time
               const endTime = new Date(
                 entry.timestamp.getTime() + 12 * 60 * 60 * 1000
               );
@@ -443,28 +441,51 @@ const HomeScreen = () => {
                 endTime.getMinutes()
               );
 
-              // Current position along the decay path
               const progressRatio = Math.min(timeElapsed / 12, 1);
               const currentAngle =
                 startAngle + (endAngle - startAngle) * progressRatio;
+              const radius = CLOCK_RADIUS - 60 - index * 25;
 
-              // Use different radii to avoid overlap - spread them out more
-              const radius = CLOCK_RADIUS - 60 - index * 25; // More spacing between arcs
-              const intensityPercentage = currentLevel / entry.caffeine;
+              // CHECK IF THIS COFFEE AFFECTS SLEEP
+              const sixHoursBeforeBed = new Date(
+                bedTime.getTime() - 6 * 60 * 60 * 1000
+              );
+              const sleepStartAngle = timeToAngle(
+                sixHoursBeforeBed.getHours(),
+                sixHoursBeforeBed.getMinutes()
+              );
+              const bedAngle = timeToAngle(
+                bedTime.getHours(),
+                bedTime.getMinutes()
+              );
 
-              // Colors for different coffees
-              const colors = [
+              // Check if the remaining caffeine arc overlaps with sleep zone
+              const affectsSleep =
+                (currentAngle <= bedAngle && endAngle >= sleepStartAngle) ||
+                (currentAngle >= sleepStartAngle && currentAngle <= bedAngle);
+
+              // Colors - red/orange for sleep conflicts, normal colors otherwise
+              const baseColors = [
                 "#FF6B35",
                 "#FF8C42",
                 "#FFA726",
                 "#FFB74D",
                 "#FFCC02",
               ];
-              const color = colors[index % colors.length];
+              const conflictColors = [
+                "#FF4444",
+                "#FF6666",
+                "#FF8888",
+                "#FFAAAA",
+                "#FFCCCC",
+              ];
+              const color = affectsSleep
+                ? conflictColors[index % conflictColors.length]
+                : baseColors[index % baseColors.length];
 
               return (
                 <G key={`coffee-halflife-${entry.id}`}>
-                  {/* Full decay path - light background */}
+                  {/* Full decay path */}
                   <Path
                     d={createArcPath(startAngle, endAngle, radius)}
                     fill="none"
@@ -474,17 +495,18 @@ const HomeScreen = () => {
                     strokeLinecap="round"
                   />
 
-                  {/* Active remaining caffeine */}
+                  {/* Active remaining caffeine - highlight if affects sleep */}
                   <Path
                     d={createArcPath(currentAngle, endAngle, radius)}
                     fill="none"
                     stroke={color}
                     strokeWidth="8"
-                    strokeOpacity={Math.max(0.7, intensityPercentage)}
+                    strokeOpacity={affectsSleep ? 0.9 : 0.7}
                     strokeLinecap="round"
+                    strokeDasharray={affectsSleep ? "8,4" : "none"} // Dashed line for sleep conflict
                   />
 
-                  {/* FIXED: Orange dot at CURRENT position (where we are in decay) */}
+                  {/* Current position dot */}
                   <Circle
                     cx={
                       centerX +
@@ -500,7 +522,23 @@ const HomeScreen = () => {
                     strokeWidth="2"
                   />
 
-                  {/* Coffee start marker (where it was logged) */}
+                  {/* Sleep conflict warning icon */}
+                  {affectsSleep && (
+                    <Circle
+                      cx={
+                        centerX + radius * Math.cos((endAngle * Math.PI) / 180)
+                      }
+                      cy={
+                        centerY + radius * Math.sin((endAngle * Math.PI) / 180)
+                      }
+                      r="8"
+                      fill="#FF4444"
+                      stroke="white"
+                      strokeWidth="2"
+                    />
+                  )}
+
+                  {/* Coffee start marker */}
                   <Circle
                     cx={
                       centerX + radius * Math.cos((startAngle * Math.PI) / 180)
@@ -2017,6 +2055,74 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "600",
     color: "#666",
+  },
+
+  improvedLegend: {
+    backgroundColor: "white",
+    borderRadius: 15,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    borderLeftWidth: 4,
+    borderLeftColor: "#FF6B35",
+  },
+
+  legendItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+
+  legendItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+
+  legendText: {
+    fontSize: 14,
+    color: "#333",
+    flex: 1,
+  },
+
+  sleepWarning: {
+    fontSize: 12,
+    color: "#FF4444",
+    fontWeight: "600",
+  },
+
+  legendExplanation: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+  },
+
+  explanationTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 8,
+  },
+
+  explanationText: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 4,
+    lineHeight: 16,
   },
 });
 
