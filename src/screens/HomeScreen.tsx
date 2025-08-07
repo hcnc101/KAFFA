@@ -10,6 +10,7 @@ import {
   AppState,
   DeviceEventEmitter,
   Image,
+  ImageStyle,
 } from "react-native";
 import { Text, Card, Button, Icon, Input, ListItem } from "@rneui/themed";
 import Svg, { Circle, Path, Text as SvgText, Line, G } from "react-native-svg";
@@ -163,10 +164,46 @@ const HomeScreen = () => {
         lastAppState.match(/inactive|background/) &&
         nextAppState === "active"
       ) {
-        // App became active
-        logActivity("app_active");
+        // App became active - but don't update activityLog in dependency
+        const newActivity: ActivityLog = {
+          timestamp: now,
+          type: "app_active",
+        };
 
-        // If it's been more than 4 hours since last activity, this might be wake-up
+        setActivityLog((prev) => [...prev.slice(-10), newActivity]);
+
+        // Try to detect wake-up without depending on activityLog
+        if (
+          !todaysWakeUpDetected &&
+          now.getHours() >= 5 &&
+          now.getHours() <= 10
+        ) {
+          const timeSinceLastActivity = lastInactiveTime
+            ? (now.getTime() - lastInactiveTime.getTime()) / (1000 * 60 * 60)
+            : 8;
+
+          if (timeSinceLastActivity >= 6) {
+            setWakeUpTime(now);
+            setTodaysWakeUpDetected(true);
+            console.log(`Smart wake-up detected: ${now.toLocaleTimeString()}`);
+
+            Alert.alert(
+              "Good Morning! 🌅",
+              `I detected your wake-up time as ${now.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })} based on your phone activity pattern.`,
+              [
+                { text: "Perfect! ✅" },
+                {
+                  text: "Adjust Time ⚙️",
+                  onPress: () => setShowWakeUpSettings(true),
+                },
+              ]
+            );
+          }
+        }
+
         if (lastInactiveTime) {
           const inactiveHours =
             (now.getTime() - lastInactiveTime.getTime()) / (1000 * 60 * 60);
@@ -177,7 +214,6 @@ const HomeScreen = () => {
           }
         }
       } else if (nextAppState.match(/inactive|background/)) {
-        // App went to background
         setLastInactiveTime(now);
       }
 
@@ -189,11 +225,8 @@ const HomeScreen = () => {
       handleAppStateChange
     );
 
-    // Log initial activity
-    logActivity("app_active");
-
     return () => subscription?.remove();
-  }, [lastAppState, todaysWakeUpDetected, activityLog, lastInactiveTime]);
+  }, [lastAppState, todaysWakeUpDetected, lastInactiveTime]); // Removed activityLog from dependencies
 
   // Manual wake-up time adjustment
   const adjustWakeUpTime = (adjustment: number) => {
@@ -213,7 +246,7 @@ const HomeScreen = () => {
     }, 5000);
 
     return () => clearInterval(timer);
-  }, [currentDateKey]);
+  }, []); // Removed currentDateKey dependency
 
   useEffect(() => {
     checkForNewDay();
@@ -561,12 +594,27 @@ const HomeScreen = () => {
                     strokeLinecap="round"
                   />
 
-                  {/* Center dot */}
-                  <Circle cx={centerX} cy={centerY} r="8" fill="#8B4513" />
+                  {/* REMOVED: Center dot - no more stop sign! */}
                 </G>
               );
             })()}
           </Svg>
+
+          {/* BACK TO ORIGINAL CENTER DISPLAY */}
+          <View style={styles.modernCenterDisplay}>
+            <Text style={styles.modernCaffeineAmount}>
+              {Math.round(currentCaffeine)}
+            </Text>
+            <Text style={styles.modernCaffeineUnit}>mg caffeine</Text>
+            <View style={styles.caffeineBar}>
+              <View
+                style={[
+                  styles.caffeineBarFill,
+                  { width: `${Math.min(caffeinePercentage * 100, 100)}%` },
+                ]}
+              />
+            </View>
+          </View>
 
           {/* OUTSIDE NUMBERS - Much more readable */}
           {[12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((hour, i) => {
@@ -593,52 +641,6 @@ const HomeScreen = () => {
               </View>
             );
           })}
-
-          {/* CUSTOM LOGO CENTER DISPLAY */}
-          <View style={styles.logoContainer}>
-            {/* Your Bean Heart Logo */}
-            <View style={styles.logoImageContainer}>
-              <Image
-                source={require("../../assets/bean-heart-logo.png")} // Add your logo here
-                style={styles.logoImage}
-                resizeMode="contain"
-              />
-            </View>
-
-            {/* Caffeine amount overlay */}
-            <View style={styles.logoOverlay}>
-              <Text style={styles.logoOverlayCaffeine}>
-                {Math.round(currentCaffeine)}
-              </Text>
-              <Text style={styles.logoOverlayUnit}>mg</Text>
-            </View>
-
-            {/* Progress ring around logo */}
-            <Svg width={120} height={120} style={styles.progressRing}>
-              <Circle
-                cx={60}
-                cy={60}
-                r={55}
-                fill="none"
-                stroke="#F0F0F0"
-                strokeWidth="8"
-              />
-              <Circle
-                cx={60}
-                cy={60}
-                r={55}
-                fill="none"
-                stroke="#FF6B35"
-                strokeWidth="8"
-                strokeDasharray={`${2 * Math.PI * 55}`}
-                strokeDashoffset={`${
-                  2 * Math.PI * 55 * (1 - caffeinePercentage)
-                }`}
-                strokeLinecap="round"
-                transform="rotate(-90 60 60)"
-              />
-            </Svg>
-          </View>
 
           {/* DIGITAL TIME - Moved to top */}
           <View style={styles.modernDigitalTime}>
@@ -802,7 +804,7 @@ const HomeScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Header */}
+      {/* BACK TO ORIGINAL HEADER */}
       <View style={styles.header}>
         <Text style={styles.title}>Coffee Science Tracker</Text>
         <View style={styles.viewToggle}>
@@ -1013,6 +1015,9 @@ const HomeScreen = () => {
           </View>
         </View>
       </Modal>
+
+      {/* REMOVE THE ENTIRE CUSTOM BOTTOM BAR FROM HERE */}
+      {/* It should be handled by React Navigation instead */}
     </ScrollView>
   );
 };
@@ -1021,6 +1026,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
+  },
+  scrollContent: {
+    flex: 1,
   },
   header: {
     flexDirection: "row",
@@ -1185,12 +1193,11 @@ const styles = StyleSheet.create({
     width: 60,
   },
   caffeineBar: {
-    height: 120,
-    width: 20,
-    backgroundColor: theme.surface,
-    borderRadius: 10,
-    justifyContent: "flex-end",
-    marginBottom: 5,
+    width: 80,
+    height: 6,
+    backgroundColor: "#F0F0F0",
+    borderRadius: 3,
+    overflow: "hidden",
   },
   caffeineLevel: {
     width: "100%",
@@ -1485,19 +1492,40 @@ const styles = StyleSheet.create({
   },
 
   modernCenterDisplay: {
-    // Remove this style since we're replacing it with logoContainer
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: 30,
+    paddingHorizontal: 25,
+    paddingVertical: 15,
+    borderWidth: 2,
+    borderColor: "#FF6B35",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
 
   modernCaffeineAmount: {
-    // Remove this style
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#FF6B35",
+    lineHeight: 36,
   },
 
   modernCaffeineUnit: {
-    // Remove this style
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 8,
   },
 
   caffeineBarFill: {
-    // Remove this style
+    height: "100%",
+    backgroundColor: "#FF6B35",
+    borderRadius: 3,
   },
 
   modernDigitalTime: {

@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ThemeProvider } from "@rneui/themed";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Icon } from "@rneui/themed";
-import { StatusBar, View } from "react-native";
+import { StatusBar, View, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
 
@@ -69,26 +69,35 @@ const CoffeeBeanIcon = ({ size = 24, color = "#FFF" }) => (
   </Svg>
 );
 
-const CameraButton = () => (
+// Replace the old CameraButton with your bean heart logo
+const BeanHeartButton = () => (
   <View
     style={{
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: theme.primary,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: "#8B4513", // Coffee brown
       justifyContent: "center",
       alignItems: "center",
-      marginTop: -30, // Pull up the button
-      borderWidth: 3,
+      marginTop: -15, // Elevate above other tabs
+      borderWidth: 4,
       borderColor: "#FFF",
       shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
+      shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.25,
-      shadowRadius: 4,
-      elevation: 5,
+      shadowRadius: 8,
+      elevation: 8,
     }}
   >
-    <CoffeeBeanIcon size={28} color="#FFF" />
+    <Image
+      source={require("./assets/bean-heart-logo.png")}
+      style={{
+        width: 32,
+        height: 32,
+        tintColor: "white",
+      }}
+      resizeMode="contain"
+    />
   </View>
 );
 
@@ -108,7 +117,7 @@ export default function App() {
                 } else if (route.name === "Discover") {
                   iconName = focused ? "search" : "search-outline";
                 } else if (route.name === "Camera") {
-                  return <CameraButton />;
+                  return <BeanHeartButton />; // Use your custom logo
                 } else if (route.name === "Activity") {
                   iconName = focused ? "heart" : "heart-outline";
                 } else if (route.name === "Profile") {
@@ -119,7 +128,7 @@ export default function App() {
               },
               tabBarActiveTintColor: theme.primary,
               tabBarInactiveTintColor: theme.textLight,
-              tabBarShowLabel: false, // Hide labels like Instagram
+              tabBarShowLabel: false,
               tabBarStyle: tabBarStyle,
               headerStyle: headerStyle,
               headerTitleStyle: headerTitleStyle,
