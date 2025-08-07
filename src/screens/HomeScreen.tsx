@@ -398,7 +398,7 @@ const HomeScreen = () => {
         {/* REDESIGNED CLOCK FACE */}
         <View style={styles.modernClockFace}>
           <Svg width={CLOCK_SIZE} height={CLOCK_SIZE}>
-            {/* Clean background with better contrast */}
+            {/* Clean background */}
             <Circle
               cx={centerX}
               cy={centerY}
@@ -408,7 +408,116 @@ const HomeScreen = () => {
               strokeWidth="2"
             />
 
-            {/* CORTISOL WINDOW - Much more prominent */}
+            {/* IMPROVED HALF-LIFE ARCS - Start from logging position */}
+            {getTodaysCoffeeEntries().map((entry, index) => {
+              const now = currentTime.getTime();
+              const timeElapsed =
+                (now - entry.timestamp.getTime()) / (1000 * 60 * 60);
+
+              if (timeElapsed < 0 || timeElapsed > 12) return null;
+
+              // Calculate current caffeine level
+              let currentLevel;
+              if (timeElapsed <= 0.75) {
+                currentLevel = entry.caffeine * (timeElapsed / 0.75);
+              } else {
+                const decayTime = timeElapsed - 0.75;
+                currentLevel = entry.caffeine * Math.pow(0.5, decayTime / 5.5);
+              }
+
+              if (currentLevel < 1) return null;
+
+              // FIXED: Start arc from LOGGING time, not from current position
+              const logTime = entry.timestamp;
+              const startAngle = timeToAngle(
+                logTime.getHours(),
+                logTime.getMinutes()
+              );
+
+              // Show decay for next 12 hours from logging time
+              const endTime = new Date(
+                entry.timestamp.getTime() + 12 * 60 * 60 * 1000
+              );
+              const endAngle = timeToAngle(
+                endTime.getHours(),
+                endTime.getMinutes()
+              );
+
+              // Current position along the decay path
+              const progressRatio = Math.min(timeElapsed / 12, 1);
+              const currentAngle =
+                startAngle + (endAngle - startAngle) * progressRatio;
+
+              // Use different radii to avoid overlap - spread them out more
+              const radius = CLOCK_RADIUS - 60 - index * 25; // More spacing between arcs
+              const intensityPercentage = currentLevel / entry.caffeine;
+
+              // Colors for different coffees
+              const colors = [
+                "#FF6B35",
+                "#FF8C42",
+                "#FFA726",
+                "#FFB74D",
+                "#FFCC02",
+              ];
+              const color = colors[index % colors.length];
+
+              return (
+                <G key={`coffee-halflife-${entry.id}`}>
+                  {/* Full decay path - light background */}
+                  <Path
+                    d={createArcPath(startAngle, endAngle, radius)}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth="8"
+                    strokeOpacity="0.2"
+                    strokeLinecap="round"
+                  />
+
+                  {/* Active remaining caffeine */}
+                  <Path
+                    d={createArcPath(currentAngle, endAngle, radius)}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth="8"
+                    strokeOpacity={Math.max(0.7, intensityPercentage)}
+                    strokeLinecap="round"
+                  />
+
+                  {/* FIXED: Orange dot at CURRENT position (where we are in decay) */}
+                  <Circle
+                    cx={
+                      centerX +
+                      radius * Math.cos((currentAngle * Math.PI) / 180)
+                    }
+                    cy={
+                      centerY +
+                      radius * Math.sin((currentAngle * Math.PI) / 180)
+                    }
+                    r="6"
+                    fill={color}
+                    stroke="white"
+                    strokeWidth="2"
+                  />
+
+                  {/* Coffee start marker (where it was logged) */}
+                  <Circle
+                    cx={
+                      centerX + radius * Math.cos((startAngle * Math.PI) / 180)
+                    }
+                    cy={
+                      centerY + radius * Math.sin((startAngle * Math.PI) / 180)
+                    }
+                    r="4"
+                    fill="white"
+                    stroke={color}
+                    strokeWidth="3"
+                  />
+                </G>
+              );
+            })}
+
+            {/* CORTISOL WINDOW */}
             {(() => {
               const wakeHour = wakeUpTime.getHours();
               const wakeMinute = wakeUpTime.getMinutes();
@@ -424,14 +533,14 @@ const HomeScreen = () => {
                   d={createArcPath(startAngle, endAngle, CLOCK_RADIUS - 15)}
                   fill="none"
                   stroke="#00BCD4"
-                  strokeWidth="25"
+                  strokeWidth="20"
                   strokeOpacity="0.3"
                   strokeLinecap="round"
                 />
               );
             })()}
 
-            {/* SLEEP IMPACT WINDOW - Much more prominent */}
+            {/* SLEEP IMPACT WINDOW */}
             {(() => {
               const bedHour = bedTime.getHours();
               const bedMinute = bedTime.getMinutes();
@@ -449,85 +558,17 @@ const HomeScreen = () => {
                   d={createArcPath(startAngle, endAngle, CLOCK_RADIUS - 15)}
                   fill="none"
                   stroke="#9C27B0"
-                  strokeWidth="25"
+                  strokeWidth="20"
                   strokeOpacity="0.3"
                   strokeLinecap="round"
                 />
               );
             })()}
 
-            {/* HALF-LIFE ARCS - Completely redesigned for visibility */}
-            {getTodaysCoffeeEntries().map((entry, index) => {
-              const now = currentTime.getTime();
-              const timeElapsed =
-                (now - entry.timestamp.getTime()) / (1000 * 60 * 60);
-
-              if (timeElapsed < 0 || timeElapsed > 12) return null;
-
-              // Create a clear, visible half-life arc
-              const totalDecayHours = 12;
-              const remainingHours = Math.max(0, totalDecayHours - timeElapsed);
-              const decayPercentage = remainingHours / totalDecayHours;
-
-              // Calculate caffeine level
-              let currentLevel;
-              if (timeElapsed <= 0.75) {
-                currentLevel = entry.caffeine * (timeElapsed / 0.75);
-              } else {
-                const decayTime = timeElapsed - 0.75;
-                currentLevel = entry.caffeine * Math.pow(0.5, decayTime / 5.5);
-              }
-
-              const intensityPercentage = currentLevel / entry.caffeine;
-
-              // Create a prominent arc showing remaining half-life
-              const arcLength = decayPercentage * 90; // Use 90 degrees per coffee
-              const startAngle = -45 + index * 100; // Spread them out
-              const endAngle = startAngle + arcLength;
-              const radius = CLOCK_RADIUS - 45 - index * 15;
-
-              if (currentLevel < 1) return null; // Only show if significant
-
-              return (
-                <G key={`coffee-halflife-${entry.id}`}>
-                  {/* Background arc (full decay path) */}
-                  <Path
-                    d={createArcPath(startAngle, startAngle + 90, radius)}
-                    fill="none"
-                    stroke="#FFE0CC"
-                    strokeWidth="12"
-                    strokeOpacity="0.3"
-                  />
-
-                  {/* Active caffeine arc */}
-                  <Path
-                    d={createArcPath(startAngle, endAngle, radius)}
-                    fill="none"
-                    stroke="#FF6B35"
-                    strokeWidth="12"
-                    strokeOpacity={Math.max(0.6, intensityPercentage)}
-                    strokeLinecap="round"
-                  />
-
-                  {/* Current position indicator */}
-                  <Circle
-                    cx={centerX + radius * Math.cos((endAngle * Math.PI) / 180)}
-                    cy={centerY + radius * Math.sin((endAngle * Math.PI) / 180)}
-                    r="8"
-                    fill="#FF6B35"
-                    stroke="white"
-                    strokeWidth="3"
-                  />
-                </G>
-              );
-            })}
-
-            {/* Hour markers - 12hr vs 24hr */}
+            {/* Hour markers */}
             {show24Hour
               ? [0, 6, 12, 18].map((i) => {
-                  // Show 0, 6, 12, 18 for 24hr
-                  const angle = i * 15 - 90; // 360/24 = 15 degrees per hour
-                  const hour = i;
+                  const angle = i * 15 - 90;
                   const markerStart = CLOCK_RADIUS - 20;
                   const markerEnd = CLOCK_RADIUS - 5;
 
@@ -555,7 +596,6 @@ const HomeScreen = () => {
                   );
                 })
               : [0, 3, 6, 9].map((i) => {
-                  // Show 12, 3, 6, 9 for 12hr
                   const angle = i * 30 - 90;
                   const markerStart = CLOCK_RADIUS - 20;
                   const markerEnd = CLOCK_RADIUS - 5;
@@ -584,7 +624,7 @@ const HomeScreen = () => {
                   );
                 })}
 
-            {/* Clock hands - updated for 24hr */}
+            {/* Clock hands - properly positioned for 24hr */}
             {(() => {
               const hours = currentTime.getHours();
               const minutes = currentTime.getMinutes();
@@ -602,12 +642,12 @@ const HomeScreen = () => {
                     y1={centerY}
                     x2={
                       centerX +
-                      (CLOCK_RADIUS - 90) *
+                      (CLOCK_RADIUS - 120) *
                         Math.cos((hourAngle * Math.PI) / 180)
                     }
                     y2={
                       centerY +
-                      (CLOCK_RADIUS - 90) *
+                      (CLOCK_RADIUS - 120) *
                         Math.sin((hourAngle * Math.PI) / 180)
                     }
                     stroke="#8B4513"
@@ -621,12 +661,12 @@ const HomeScreen = () => {
                     y1={centerY}
                     x2={
                       centerX +
-                      (CLOCK_RADIUS - 70) *
+                      (CLOCK_RADIUS - 100) *
                         Math.cos((minuteAngle * Math.PI) / 180)
                     }
                     y2={
                       centerY +
-                      (CLOCK_RADIUS - 70) *
+                      (CLOCK_RADIUS - 100) *
                         Math.sin((minuteAngle * Math.PI) / 180)
                     }
                     stroke="#8B4513"
@@ -641,31 +681,23 @@ const HomeScreen = () => {
             })()}
           </Svg>
 
-          {/* BACK TO ORIGINAL CENTER DISPLAY */}
-          <View style={styles.modernCenterDisplay}>
-            <Text style={styles.modernCaffeineAmount}>
+          {/* SMALLER CENTER DISPLAY - doesn't hide arcs */}
+          <View style={styles.smallerCenterDisplay}>
+            <Text style={styles.smallerCaffeineAmount}>
               {Math.round(currentCaffeine)}
             </Text>
-            <Text style={styles.modernCaffeineUnit}>mg caffeine</Text>
-            <View style={styles.caffeineBar}>
-              <View
-                style={[
-                  styles.caffeineBarFill,
-                  { width: `${Math.min(caffeinePercentage * 100, 100)}%` },
-                ]}
-              />
-            </View>
+            <Text style={styles.smallerCaffeineUnit}>mg</Text>
           </View>
 
-          {/* OUTSIDE NUMBERS - 24-hour clock with ALL hours visible */}
+          {/* REMOVE TOP DIGITAL TIME - hands show the time */}
+
+          {/* OUTSIDE NUMBERS */}
           {(show24Hour
-            ? Array.from({ length: 24 }, (_, i) => i) // [0,1,2,3,4,5...23] - ALL 24 HOURS
+            ? Array.from({ length: 24 }, (_, i) => i)
             : [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
           ).map((hour, index) => {
-            const angle = show24Hour
-              ? hour * 15 - 90 // 24hr: 15 degrees per hour (360/24 = 15)
-              : index * 30 - 90; // 12hr: 30 degrees per hour (360/12 = 30)
-            const numberRadius = CLOCK_RADIUS + 25; // OUTSIDE the clock
+            const angle = show24Hour ? hour * 15 - 90 : index * 30 - 90;
+            const numberRadius = CLOCK_RADIUS + 25;
             const x =
               centerX + numberRadius * Math.cos((angle * Math.PI) / 180);
             const y =
@@ -676,10 +708,10 @@ const HomeScreen = () => {
                 key={`${show24Hour ? "24h" : "12h"}-${hour}-${index}`}
                 style={[
                   styles.clockNumber,
-                  show24Hour && styles.clockNumber24, // Smaller container for 24hr
+                  show24Hour && styles.clockNumber24,
                   {
                     position: "absolute",
-                    left: x - (show24Hour ? 15 : 20), // Smaller offset for 24hr
+                    left: x - (show24Hour ? 15 : 20),
                     top: y - (show24Hour ? 15 : 20),
                   },
                 ]}
@@ -687,7 +719,7 @@ const HomeScreen = () => {
                 <Text
                   style={[
                     styles.clockNumberText,
-                    show24Hour && styles.clockNumber24Text, // Much smaller text for 24hr
+                    show24Hour && styles.clockNumber24Text,
                   ]}
                 >
                   {show24Hour ? hour : hour === 0 ? 12 : hour}
@@ -695,17 +727,6 @@ const HomeScreen = () => {
               </View>
             );
           })}
-
-          {/* DIGITAL TIME - Moved to top */}
-          <View style={styles.modernDigitalTime}>
-            <Text style={styles.modernTimeText}>
-              {currentTime.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-              })}
-            </Text>
-          </View>
         </View>
 
         {/* CLEAR HALF-LIFE LEGEND */}
@@ -1965,6 +1986,37 @@ const styles = StyleSheet.create({
   activeHourTextRedesigned: {
     color: "white",
     fontWeight: "bold",
+  },
+
+  // SMALLER CENTER DISPLAY
+  smallerCenterDisplay: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderWidth: 2,
+    borderColor: "#FF6B35",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+  },
+
+  smallerCaffeineAmount: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#FF6B35",
+    lineHeight: 22,
+  },
+
+  smallerCaffeineUnit: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#666",
   },
 });
 
