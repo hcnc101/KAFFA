@@ -69,18 +69,18 @@ const CoffeeBeanIcon = ({ size = 24, color = "#FFF" }) => (
   </Svg>
 );
 
-// Replace the old CameraButton with your bean heart logo
+// Completely simplified BeanHeartButton - remove all the complex positioning
 const BeanHeartButton = () => (
   <View
     style={{
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      backgroundColor: "#8B4513", // Coffee brown
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: "#8B4513",
       justifyContent: "center",
       alignItems: "center",
-      marginTop: -15, // Elevate above other tabs
-      borderWidth: 4,
+      marginTop: -28, // Pull it up exactly half its height
+      borderWidth: 3,
       borderColor: "#FFF",
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 4 },
@@ -92,8 +92,8 @@ const BeanHeartButton = () => (
     <Image
       source={require("./assets/bean-heart-logo.png")}
       style={{
-        width: 32,
-        height: 32,
+        width: 26,
+        height: 26,
         tintColor: "white",
       }}
       resizeMode="contain"
@@ -117,7 +117,7 @@ export default function App() {
                 } else if (route.name === "Discover") {
                   iconName = focused ? "search" : "search-outline";
                 } else if (route.name === "Camera") {
-                  return <BeanHeartButton />; // Use your custom logo
+                  return <BeanHeartButton />;
                 } else if (route.name === "Activity") {
                   iconName = focused ? "heart" : "heart-outline";
                 } else if (route.name === "Profile") {
@@ -128,8 +128,18 @@ export default function App() {
               },
               tabBarActiveTintColor: theme.primary,
               tabBarInactiveTintColor: theme.textLight,
-              tabBarShowLabel: false,
-              tabBarStyle: tabBarStyle,
+              tabBarShowLabel: true,
+              tabBarLabelStyle: {
+                fontSize: 11,
+                fontWeight: "600",
+                marginTop: -2,
+              },
+              tabBarStyle: {
+                ...tabBarStyle,
+                height: 75,
+                paddingBottom: 15,
+                paddingTop: 8,
+              },
               headerStyle: headerStyle,
               headerTitleStyle: headerTitleStyle,
               headerTitleAlign: "center",
@@ -140,6 +150,7 @@ export default function App() {
               component={HomeScreen}
               options={{
                 title: "Kaffa",
+                tabBarLabel: "Home",
               }}
             />
             <Tab.Screen
@@ -147,6 +158,7 @@ export default function App() {
               component={SearchScreen}
               options={{
                 title: "Discover",
+                tabBarLabel: "Search",
               }}
             />
             <Tab.Screen
@@ -154,6 +166,7 @@ export default function App() {
               component={AddReviewScreen}
               options={{
                 title: "New Coffee",
+                tabBarLabel: "", // Empty label for center button
               }}
             />
             <Tab.Screen
@@ -161,6 +174,7 @@ export default function App() {
               component={ActivityScreen}
               options={{
                 title: "Activity",
+                tabBarLabel: "Favorites",
               }}
             />
             <Tab.Screen
@@ -168,6 +182,7 @@ export default function App() {
               component={ProfileScreen}
               options={{
                 title: "Profile & Reviews",
+                tabBarLabel: "Profile",
               }}
             />
           </Tab.Navigator>

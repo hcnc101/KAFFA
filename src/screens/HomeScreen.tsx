@@ -226,7 +226,7 @@ const HomeScreen = () => {
     );
 
     return () => subscription?.remove();
-  }, [lastAppState, todaysWakeUpDetected, lastInactiveTime]); // Removed activityLog from dependencies
+  }, []); // Remove all dependencies to prevent infinite loop
 
   // Manual wake-up time adjustment
   const adjustWakeUpTime = (adjustment: number) => {
@@ -246,7 +246,7 @@ const HomeScreen = () => {
     }, 5000);
 
     return () => clearInterval(timer);
-  }, []); // Removed currentDateKey dependency
+  }, [currentDateKey]); // Only depend on currentDateKey
 
   useEffect(() => {
     checkForNewDay();
