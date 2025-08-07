@@ -657,14 +657,14 @@ const HomeScreen = () => {
             </View>
           </View>
 
-          {/* OUTSIDE NUMBERS - Much more readable */}
+          {/* OUTSIDE NUMBERS - 24-hour clock with ALL hours visible */}
           {(show24Hour
-            ? Array.from({ length: 24 }, (_, i) => i) // [0,1,2,...,23]
+            ? Array.from({ length: 24 }, (_, i) => i) // [0,1,2,3,4,5...23] - ALL 24 HOURS
             : [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
           ).map((hour, index) => {
             const angle = show24Hour
-              ? hour * 15 - 90 // 24hr: 15 degrees per hour
-              : index * 30 - 90; // 12hr: 30 degrees per hour
+              ? hour * 15 - 90 // 24hr: 15 degrees per hour (360/24 = 15)
+              : index * 30 - 90; // 12hr: 30 degrees per hour (360/12 = 30)
             const numberRadius = CLOCK_RADIUS + 25; // OUTSIDE the clock
             const x =
               centerX + numberRadius * Math.cos((angle * Math.PI) / 180);
@@ -673,20 +673,21 @@ const HomeScreen = () => {
 
             return (
               <View
-                key={`${show24Hour ? "24h" : "12h"}-${hour}-${index}`} // UNIQUE KEY FIX
+                key={`${show24Hour ? "24h" : "12h"}-${hour}-${index}`}
                 style={[
                   styles.clockNumber,
+                  show24Hour && styles.clockNumber24, // Smaller container for 24hr
                   {
                     position: "absolute",
-                    left: x - 20,
-                    top: y - 20,
+                    left: x - (show24Hour ? 15 : 20), // Smaller offset for 24hr
+                    top: y - (show24Hour ? 15 : 20),
                   },
                 ]}
               >
                 <Text
                   style={[
                     styles.clockNumberText,
-                    show24Hour && styles.clockNumber24Text, // Smaller text for 24hr
+                    show24Hour && styles.clockNumber24Text, // Much smaller text for 24hr
                   ]}
                 >
                   {show24Hour ? hour : hour === 0 ? 12 : hour}
@@ -891,7 +892,7 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* 12hr/24hr toggle - only show when clock view is active */}
+          {/* 12hr/24hr toggle - make it more prominent */}
           {showClockView && (
             <View style={styles.hourToggle}>
               <TouchableOpacity
@@ -907,7 +908,7 @@ const HomeScreen = () => {
                     !show24Hour && styles.activeHourToggleText,
                   ]}
                 >
-                  12h
+                  12hr
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -923,7 +924,7 @@ const HomeScreen = () => {
                     show24Hour && styles.activeHourToggleText,
                   ]}
                 >
-                  24h
+                  24hr
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1585,9 +1586,24 @@ const styles = StyleSheet.create({
     borderColor: "#F0F0F0",
   },
 
+  // Add smaller container for 24-hour numbers
+  clockNumber24: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+  },
+
   clockNumberText: {
     fontSize: 18,
     fontWeight: "bold",
+    color: "#333",
+  },
+
+  // Fix the duplicate clockNumber24Text - remove the duplicate one
+  clockNumber24Text: {
+    fontSize: 12, // Much smaller text to fit all 24 numbers
+    fontWeight: "600",
     color: "#333",
   },
 
@@ -1807,11 +1823,6 @@ const styles = StyleSheet.create({
 
   activeHourToggleText: {
     color: "white",
-  },
-
-  clockNumber24Text: {
-    fontSize: 14, // Smaller text for 24hr numbers
-    fontWeight: "600",
   },
 });
 
