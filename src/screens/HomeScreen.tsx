@@ -858,78 +858,97 @@ const HomeScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Enhanced header with 12hr/24hr toggle */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Coffee Science Tracker</Text>
-        <View style={styles.toggleContainer}>
-          {/* Clock type toggle */}
-          <View style={styles.viewToggle}>
-            <TouchableOpacity
-              onPress={() => setShowClockView(true)}
+      {/* REDESIGNED HEADER - Remove title, focus on toggles */}
+      <View style={styles.headerRedesigned}>
+        {/* Clock type toggle - LEFT SIDE */}
+        <View style={styles.viewToggleRedesigned}>
+          <TouchableOpacity
+            onPress={() => setShowClockView(true)}
+            style={[
+              styles.toggleButtonRedesigned,
+              showClockView && styles.activeToggleRedesigned,
+            ]}
+          >
+            <Icon
+              name="schedule"
+              size={20}
+              color={showClockView ? "white" : theme.text}
+            />
+            <Text
               style={[
-                styles.toggleButton,
-                showClockView && styles.activeToggle,
+                styles.toggleLabelText,
+                showClockView && styles.activeToggleLabelText,
               ]}
             >
-              <Icon
-                name="schedule"
-                size={18}
-                color={showClockView ? "white" : theme.text}
-              />
+              Clock
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setShowClockView(false)}
+            style={[
+              styles.toggleButtonRedesigned,
+              !showClockView && styles.activeToggleRedesigned,
+            ]}
+          >
+            <Icon
+              name="timeline"
+              size={20}
+              color={!showClockView ? "white" : theme.text}
+            />
+            <Text
+              style={[
+                styles.toggleLabelText,
+                !showClockView && styles.activeToggleLabelText,
+              ]}
+            >
+              Timeline
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 12hr/24hr toggle - RIGHT SIDE */}
+        {showClockView && (
+          <View style={styles.hourToggleRedesigned}>
+            <TouchableOpacity
+              onPress={() => {
+                console.log("Switching to 12hr mode");
+                setShow24Hour(false);
+              }}
+              style={[
+                styles.hourButtonRedesigned,
+                !show24Hour && styles.activeHourButtonRedesigned,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.hourTextRedesigned,
+                  !show24Hour && styles.activeHourTextRedesigned,
+                ]}
+              >
+                12hr
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => setShowClockView(false)}
+              onPress={() => {
+                console.log("Switching to 24hr mode");
+                setShow24Hour(true);
+              }}
               style={[
-                styles.toggleButton,
-                !showClockView && styles.activeToggle,
+                styles.hourButtonRedesigned,
+                show24Hour && styles.activeHourButtonRedesigned,
               ]}
             >
-              <Icon
-                name="timeline"
-                size={18}
-                color={!showClockView ? "white" : theme.text}
-              />
+              <Text
+                style={[
+                  styles.hourTextRedesigned,
+                  show24Hour && styles.activeHourTextRedesigned,
+                ]}
+              >
+                24hr
+              </Text>
             </TouchableOpacity>
           </View>
-
-          {/* 12hr/24hr toggle - make it more prominent */}
-          {showClockView && (
-            <View style={styles.hourToggle}>
-              <TouchableOpacity
-                onPress={() => setShow24Hour(false)}
-                style={[
-                  styles.hourToggleButton,
-                  !show24Hour && styles.activeHourToggle,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.hourToggleText,
-                    !show24Hour && styles.activeHourToggleText,
-                  ]}
-                >
-                  12hr
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShow24Hour(true)}
-                style={[
-                  styles.hourToggleButton,
-                  show24Hour && styles.activeHourToggle,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.hourToggleText,
-                    show24Hour && styles.activeHourToggleText,
-                  ]}
-                >
-                  24hr
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
+        )}
       </View>
 
       {/* Main Display */}
@@ -1823,6 +1842,129 @@ const styles = StyleSheet.create({
 
   activeHourToggleText: {
     color: "white",
+  },
+
+  // NEW FIXED STYLES FOR 12hr/24hr TOGGLE
+  hourToggleFixed: {
+    flexDirection: "row",
+    backgroundColor: "#F5F5F5",
+    borderRadius: 18,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+
+  hourToggleButtonFixed: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 15,
+    minWidth: 50,
+    alignItems: "center",
+  },
+
+  activeHourToggleFixed: {
+    backgroundColor: theme.primary,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  hourToggleTextFixed: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#666",
+  },
+
+  activeHourToggleTextFixed: {
+    color: "white",
+    fontWeight: "bold",
+  },
+
+  // REPLACE OLD HEADER STYLES WITH NEW ONES
+  headerRedesigned: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: theme.background,
+  },
+
+  viewToggleRedesigned: {
+    flexDirection: "row",
+    backgroundColor: "#F8F8F8",
+    borderRadius: 25,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+
+  toggleButtonRedesigned: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 21,
+  },
+
+  activeToggleRedesigned: {
+    backgroundColor: theme.primary,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  toggleLabelText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.textLight,
+    marginLeft: 6,
+  },
+
+  activeToggleLabelText: {
+    color: "white",
+  },
+
+  hourToggleRedesigned: {
+    flexDirection: "row",
+    backgroundColor: "#F8F8F8",
+    borderRadius: 25,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+
+  hourButtonRedesigned: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 21,
+    minWidth: 60,
+    alignItems: "center",
+  },
+
+  activeHourButtonRedesigned: {
+    backgroundColor: theme.accent,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  hourTextRedesigned: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.textLight,
+  },
+
+  activeHourTextRedesigned: {
+    color: "white",
+    fontWeight: "bold",
   },
 });
 
