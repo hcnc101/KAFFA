@@ -11,6 +11,7 @@ import {
   DeviceEventEmitter,
   Image,
   ImageStyle,
+  Vibration,
 } from "react-native";
 import { Text, Card, Button, Icon, Input, ListItem } from "@rneui/themed";
 import Svg, { Circle, Path, Text as SvgText, Line, G } from "react-native-svg";
@@ -272,10 +273,37 @@ const HomeScreen = () => {
     setCoffeeEntries((prev) => [...prev, entry]);
     setShowCoffeeModal(false);
 
-    // Log significant activity (coffee consumption)
+    // IMMEDIATE FEEDBACK - Multiple types
+
+    // 1. Haptic feedback (vibration)
+    Vibration.vibrate(100);
+
+    // 2. Success alert with coffee details
+    Alert.alert(
+      "☕ Coffee Logged!",
+      `${coffeeType.name} (${coffeeType.caffeine}mg) added to your tracker.\n\n🔍 Check the clock for your new orange arc!`,
+      [
+        {
+          text: "View Clock",
+          onPress: () => {
+            setShowClockView(true);
+            // Force immediate update
+            setCurrentTime(new Date());
+          },
+        },
+      ]
+    );
+
+    // 3. Log significant activity
     logActivity("significant_activity");
 
+    // 4. Force immediate clock update
     setCurrentTime(new Date());
+
+    // 5. Console feedback for debugging
+    console.log(
+      `✅ SUCCESS: ${coffeeType.name} logged at ${now.toLocaleTimeString()}`
+    );
   };
 
   // Get today's coffee entries only
@@ -1096,7 +1124,7 @@ const HomeScreen = () => {
         <Text style={styles.addButtonText}>Log Coffee</Text>
       </TouchableOpacity>
 
-      {/* Coffee Selection Modal */}
+      {/* IMPROVED Coffee Selection Modal with Preview */}
       <Modal
         visible={showCoffeeModal}
         animationType="slide"
@@ -1106,25 +1134,37 @@ const HomeScreen = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>What did you drink?</Text>
+            <Text style={styles.modalSubtitle}>
+              Your coffee will appear as an orange arc on the clock
+            </Text>
+
             {coffeeTypes.map((coffee) => (
               <TouchableOpacity
                 key={coffee.name}
-                style={styles.coffeeOption}
+                style={styles.coffeeOptionImproved}
                 onPress={() => addCoffeeEntry(coffee)}
               >
                 <Icon
                   name={coffee.icon}
                   type="material"
                   color={theme.primary}
+                  size={28}
                 />
                 <View style={styles.coffeeInfo}>
                   <Text style={styles.coffeeName}>{coffee.name}</Text>
                   <Text style={styles.caffeineContent}>
                     {coffee.caffeine}mg caffeine
                   </Text>
+                  <Text style={styles.coffeePreview}>
+                    Will show 12-hour decay arc on clock
+                  </Text>
+                </View>
+                <View style={styles.addIndicator}>
+                  <Icon name="add-circle" color="#4CAF50" size={24} />
                 </View>
               </TouchableOpacity>
             ))}
+
             <Button
               title="Cancel"
               onPress={() => setShowCoffeeModal(false)}
@@ -2123,6 +2163,69 @@ const styles = StyleSheet.create({
     color: "#666",
     marginBottom: 4,
     lineHeight: 16,
+  },
+
+  // Fix the duplicate legendDot error
+  halfLifeColorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+
+  // Remove the duplicate legendDot and add new styles
+  coffeeOptionImproved: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 18,
+    borderRadius: 12,
+    backgroundColor: theme.surface,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: "transparent",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+
+  addIndicator: {
+    marginLeft: 10,
+  },
+
+  coffeePreview: {
+    fontSize: 11,
+    color: "#4CAF50",
+    fontStyle: "italic",
+    marginTop: 2,
+  },
+
+  modalSubtitle: {
+    fontSize: 14,
+    color: theme.textLight,
+    textAlign: "center",
+    marginBottom: 20,
+    fontStyle: "italic",
+  },
+
+  // Add immediate feedback styles
+  successToast: {
+    position: "absolute",
+    top: 100,
+    left: 20,
+    right: 20,
+    backgroundColor: "#4CAF50",
+    padding: 15,
+    borderRadius: 10,
+    zIndex: 1000,
+    elevation: 10,
+  },
+
+  successToastText: {
+    color: "white",
+    textAlign: "center",
+    fontWeight: "600",
   },
 });
 
