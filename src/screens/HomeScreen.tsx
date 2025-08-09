@@ -1355,6 +1355,93 @@ const HomeScreen = () => {
         {/* Main Display */}
         {showClockView ? renderCoffeeClock() : renderTimelineView()}
 
+        {/* MOVE ACTIVE CAFFEINE TRACKING TO BE FIRST CARD */}
+        <View style={styles.improvedHalfLifeLegend}>
+          <Text style={styles.improvedLegendTitle}>
+            ☕ Active Caffeine Tracking
+          </Text>
+
+          {getTodaysCoffeeEntries().length === 0 ? (
+            <View style={styles.noCoffeePlaceholder}>
+              <Text style={styles.noCoffeeText}>No coffee logged today</Text>
+              <Text style={styles.noCoffeeSubtext}>
+                Tap + to add your first coffee
+              </Text>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.legendSubtitle}>
+                Real-time caffeine levels from today's drinks
+              </Text>
+
+              {getTodaysCoffeeEntries().map((entry, index) => {
+                const now = currentTime.getTime();
+                const timeElapsed =
+                  (now - entry.timestamp.getTime()) / (1000 * 60 * 60);
+                let currentLevel = 0;
+
+                const milkEffect =
+                  milkTypes.find((m) => m.name === entry.milkType) ||
+                  milkTypes[0];
+                const absorptionTime = (45 + milkEffect.peakDelay) / 60;
+
+                if (timeElapsed >= 0 && timeElapsed <= 24) {
+                  if (timeElapsed <= absorptionTime) {
+                    currentLevel =
+                      entry.effectiveCaffeine * (timeElapsed / absorptionTime);
+                  } else {
+                    const decayTime = timeElapsed - absorptionTime;
+                    currentLevel =
+                      entry.effectiveCaffeine * Math.pow(0.5, decayTime / 5.5);
+                  }
+                }
+
+                if (currentLevel < 1) return null;
+
+                return (
+                  <View key={entry.id} style={styles.halfLifeItem}>
+                    <View
+                      style={[
+                        styles.halfLifeColorDot,
+                        {
+                          backgroundColor: "#FF6B35",
+                          opacity: Math.max(
+                            0.6,
+                            currentLevel / entry.effectiveCaffeine
+                          ),
+                        },
+                      ]}
+                    />
+                    <Text style={styles.halfLifeItemText}>
+                      {entry.type}: {Math.round(currentLevel)}mg remaining
+                      (started{" "}
+                      {entry.timestamp.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                      )
+                    </Text>
+                  </View>
+                );
+              })}
+
+              {/* Total Summary */}
+              <View style={styles.totalSummaryCard}>
+                <Text style={styles.totalSummaryTitle}>
+                  Total Active Caffeine
+                </Text>
+                <Text style={styles.totalSummaryAmount}>
+                  {Math.round(getCurrentCaffeineLevel())}mg
+                </Text>
+                <Text style={styles.totalSummarySubtext}>
+                  from {getTodaysCoffeeEntries().length} drink
+                  {getTodaysCoffeeEntries().length !== 1 ? "s" : ""} today
+                </Text>
+              </View>
+            </>
+          )}
+        </View>
+
         {/* Status Cards - Only if relevant */}
         {(cortisolInfo.isInWindow ||
           sleepInfo.isInWindow ||
