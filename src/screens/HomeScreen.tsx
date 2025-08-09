@@ -35,24 +35,192 @@ const theme = {
   sleep: "#6C5CE7", // Purple for sleep zone
 };
 
-// Coffee types with caffeine content (mg)
+// Updated coffee types with British measurements (mL) and more varieties
 const coffeeTypes = [
-  { name: "Espresso", caffeine: 75, icon: "local-cafe" },
-  { name: "Coffee (8oz)", caffeine: 95, icon: "coffee" },
-  { name: "Americano", caffeine: 150, icon: "coffee" },
-  { name: "Cold Brew", caffeine: 200, icon: "ac-unit" },
-  { name: "Tea", caffeine: 50, icon: "emoji-food-beverage" },
-  { name: "Energy Drink", caffeine: 80, icon: "battery-charging-full" },
+  {
+    name: "Espresso",
+    volume: 30,
+    caffeine: 75,
+    icon: "local-cafe",
+    category: "black",
+  },
+  {
+    name: "Double Espresso",
+    volume: 60,
+    caffeine: 150,
+    icon: "local-cafe",
+    category: "black",
+  },
+  {
+    name: "Americano",
+    volume: 200,
+    caffeine: 150,
+    icon: "coffee",
+    category: "black",
+  },
+  {
+    name: "Long Black",
+    volume: 180,
+    caffeine: 140,
+    icon: "coffee",
+    category: "black",
+  },
+  {
+    name: "Filter Coffee",
+    volume: 250,
+    caffeine: 120,
+    icon: "coffee",
+    category: "black",
+  },
+  {
+    name: "Cappuccino",
+    volume: 180,
+    caffeine: 75,
+    icon: "local-cafe",
+    category: "milk",
+    defaultMilk: "semi-skimmed",
+  },
+  {
+    name: "Latte",
+    volume: 250,
+    caffeine: 75,
+    icon: "local-cafe",
+    category: "milk",
+    defaultMilk: "semi-skimmed",
+  },
+  {
+    name: "Flat White",
+    volume: 160,
+    caffeine: 130,
+    icon: "local-cafe",
+    category: "milk",
+    defaultMilk: "whole",
+  },
+  {
+    name: "Cortado",
+    volume: 120,
+    caffeine: 75,
+    icon: "local-cafe",
+    category: "milk",
+    defaultMilk: "whole",
+  },
+  {
+    name: "Macchiato",
+    volume: 60,
+    caffeine: 75,
+    icon: "local-cafe",
+    category: "milk",
+    defaultMilk: "semi-skimmed",
+  },
+  {
+    name: "Mocha",
+    volume: 250,
+    caffeine: 95,
+    icon: "local-cafe",
+    category: "milk",
+    defaultMilk: "whole",
+  },
+  {
+    name: "Cold Brew",
+    volume: 250,
+    caffeine: 200,
+    icon: "ac-unit",
+    category: "black",
+  },
+  {
+    name: "Iced Coffee",
+    volume: 250,
+    caffeine: 120,
+    icon: "ac-unit",
+    category: "black",
+  },
+  {
+    name: "Tea (English Breakfast)",
+    volume: 250,
+    caffeine: 50,
+    icon: "emoji-food-beverage",
+    category: "black",
+  },
+  {
+    name: "Earl Grey",
+    volume: 250,
+    caffeine: 45,
+    icon: "emoji-food-beverage",
+    category: "black",
+  },
+  {
+    name: "Green Tea",
+    volume: 250,
+    caffeine: 35,
+    icon: "emoji-food-beverage",
+    category: "black",
+  },
+  {
+    name: "Energy Drink",
+    volume: 250,
+    caffeine: 80,
+    icon: "battery-charging-full",
+    category: "black",
+  },
+];
+
+// Milk types and their effects on caffeine absorption
+const milkTypes = [
+  {
+    name: "No Milk",
+    absorptionDelay: 0, // minutes
+    caffeineReduction: 0, // percentage
+    peakDelay: 0, // additional minutes to peak
+  },
+  {
+    name: "Skimmed",
+    absorptionDelay: 5,
+    caffeineReduction: 0.02, // 2% reduction
+    peakDelay: 5,
+  },
+  {
+    name: "Semi-Skimmed",
+    absorptionDelay: 8,
+    caffeineReduction: 0.05, // 5% reduction
+    peakDelay: 10,
+  },
+  {
+    name: "Whole Milk",
+    absorptionDelay: 12,
+    caffeineReduction: 0.12, // 12% reduction
+    peakDelay: 20,
+  },
+  {
+    name: "Oat Milk",
+    absorptionDelay: 6,
+    caffeineReduction: 0.03, // 3% reduction
+    peakDelay: 7,
+  },
+  {
+    name: "Almond Milk",
+    absorptionDelay: 3,
+    caffeineReduction: 0.01, // 1% reduction
+    peakDelay: 3,
+  },
+  {
+    name: "Soy Milk",
+    absorptionDelay: 7,
+    caffeineReduction: 0.04, // 4% reduction
+    peakDelay: 8,
+  },
 ];
 
 interface CoffeeEntry {
   id: string;
   type: string;
+  volume: number; // mL
   caffeine: number;
   timestamp: Date;
   peakTime: Date;
   halfLifeTime: Date;
   dateKey: string;
+  milkType?: string; // Add milk type
+  effectiveCaffeine: number; // Caffeine after milk absorption effects
 }
 
 interface ActivityLog {
@@ -81,6 +249,9 @@ const HomeScreen = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const fadeAnim = useState(new Animated.Value(0))[0]; // For smooth toast animation
+  const [selectedCoffee, setSelectedCoffee] = useState<any>(null);
+  const [selectedMilk, setSelectedMilk] = useState<any>(milkTypes[0]);
+  const [showMilkSelector, setShowMilkSelector] = useState(false);
 
   // Helper function to get date key (YYYY-MM-DD)
   function getDateKey(date: Date): string {
@@ -258,34 +429,49 @@ const HomeScreen = () => {
     checkForNewDay();
   }, []);
 
-  const addCoffeeEntry = (coffeeType: any) => {
+  const addCoffeeEntry = (coffeeType: any, milkType: any = milkTypes[0]) => {
     const now = new Date();
-    const peakTime = new Date(now.getTime() + 45 * 60000);
+
+    // Calculate caffeine absorption with milk effects
+    const milkEffect = milkType || milkTypes[0];
+    const effectiveCaffeine =
+      coffeeType.caffeine * (1 - milkEffect.caffeineReduction);
+    const absorptionTime = 45 + milkEffect.peakDelay; // Base 45min + milk delay
+
+    const peakTime = new Date(now.getTime() + absorptionTime * 60000);
     const halfLifeTime = new Date(now.getTime() + 5.5 * 60 * 60000);
 
     const entry: CoffeeEntry = {
       id: Date.now().toString(),
       type: coffeeType.name,
+      volume: coffeeType.volume,
       caffeine: coffeeType.caffeine,
+      effectiveCaffeine: effectiveCaffeine,
       timestamp: now,
       peakTime,
       halfLifeTime,
       dateKey: getDateKey(now),
+      milkType: milkType.name,
     };
 
-    // STREAMLINED FEEDBACK - Just what's needed
+    // STREAMLINED FEEDBACK
     setCoffeeEntries((prev) => [...prev, entry]);
     setShowCoffeeModal(false);
-    setShowClockView(true); // Auto-switch to clock view
-    setCurrentTime(new Date()); // Force immediate update
+    setShowClockView(true);
+    setCurrentTime(new Date());
 
-    // Subtle toast notification (no intrusive alert)
-    showSuccessToast(`☕ ${coffeeType.name} logged - ${coffeeType.caffeine}mg`);
+    // Enhanced toast with milk info
+    const milkInfo =
+      milkType.name !== "No Milk"
+        ? ` with ${milkType.name.toLowerCase()} milk`
+        : "";
+    showSuccessToast(
+      `☕ ${coffeeType.name}${milkInfo} logged - ${Math.round(
+        effectiveCaffeine
+      )}mg effective caffeine`
+    );
 
-    // Light haptic feedback (optional, less jarring)
     Vibration.vibrate(50);
-
-    // Log activity
     logActivity("significant_activity");
   };
 
@@ -319,6 +505,7 @@ const HomeScreen = () => {
     return coffeeEntries.filter((entry) => entry.dateKey === todayKey);
   };
 
+  // Updated caffeine calculation with milk effects
   const getCurrentCaffeineLevel = () => {
     const now = currentTime.getTime();
     const todaysEntries = getTodaysCoffeeEntries();
@@ -328,14 +515,18 @@ const HomeScreen = () => {
     }
 
     let totalCaffeine = 0;
-    console.log("=== CAFFEINE CALCULATION DEBUG ===");
+    console.log("=== ENHANCED CAFFEINE CALCULATION (with milk effects) ===");
 
     todaysEntries.forEach((entry, index) => {
-      const timeElapsed = (now - entry.timestamp.getTime()) / (1000 * 60 * 60); // Hours
+      const timeElapsed = (now - entry.timestamp.getTime()) / (1000 * 60 * 60);
+      const milkEffect =
+        milkTypes.find((m) => m.name === entry.milkType) || milkTypes[0];
+      const absorptionTime = (45 + milkEffect.peakDelay) / 60; // Convert to hours
+
       console.log(
-        `Coffee ${index + 1}: ${entry.type} (${
-          entry.caffeine
-        }mg) - ${timeElapsed.toFixed(2)} hours ago`
+        `Coffee ${index + 1}: ${entry.type} (${entry.caffeine}mg → ${Math.round(
+          entry.effectiveCaffeine
+        )}mg with ${entry.milkType}) - ${timeElapsed.toFixed(2)} hours ago`
       );
 
       if (timeElapsed < 0) {
@@ -349,14 +540,18 @@ const HomeScreen = () => {
       }
 
       let currentLevel;
-      if (timeElapsed <= 0.75) {
-        // Absorption phase (0-45 minutes)
-        currentLevel = entry.caffeine * (timeElapsed / 0.75);
-        console.log(`  -> Absorption phase: ${currentLevel.toFixed(1)}mg`);
+      if (timeElapsed <= absorptionTime) {
+        // Absorption phase with milk delay
+        currentLevel = entry.effectiveCaffeine * (timeElapsed / absorptionTime);
+        console.log(
+          `  -> Absorption phase (${absorptionTime.toFixed(
+            2
+          )}h peak): ${currentLevel.toFixed(1)}mg`
+        );
       } else {
-        // Decay phase (half-life of 5.5 hours)
-        const decayTime = timeElapsed - 0.75;
-        currentLevel = entry.caffeine * Math.pow(0.5, decayTime / 5.5);
+        // Decay phase
+        const decayTime = timeElapsed - absorptionTime;
+        currentLevel = entry.effectiveCaffeine * Math.pow(0.5, decayTime / 5.5);
         console.log(
           `  -> Decay phase (${decayTime.toFixed(
             2
@@ -453,11 +648,18 @@ const HomeScreen = () => {
 
               // Calculate current caffeine level
               let currentLevel;
-              if (timeElapsed <= 0.75) {
-                currentLevel = entry.caffeine * (timeElapsed / 0.75);
+              const milkEffect =
+                milkTypes.find((m) => m.name === entry.milkType) ||
+                milkTypes[0];
+              const absorptionTime = (45 + milkEffect.peakDelay) / 60; // Convert to hours
+
+              if (timeElapsed <= absorptionTime) {
+                currentLevel =
+                  entry.effectiveCaffeine * (timeElapsed / absorptionTime);
               } else {
-                const decayTime = timeElapsed - 0.75;
-                currentLevel = entry.caffeine * Math.pow(0.5, decayTime / 5.5);
+                const decayTime = timeElapsed - absorptionTime;
+                currentLevel =
+                  entry.effectiveCaffeine * Math.pow(0.5, decayTime / 5.5);
               }
 
               if (currentLevel < 1) return null;
@@ -813,12 +1015,18 @@ const HomeScreen = () => {
               (now - entry.timestamp.getTime()) / (1000 * 60 * 60);
             let currentLevel = 0;
 
+            const milkEffect =
+              milkTypes.find((m) => m.name === entry.milkType) || milkTypes[0];
+            const absorptionTime = (45 + milkEffect.peakDelay) / 60; // Convert to hours
+
             if (timeElapsed >= 0 && timeElapsed <= 24) {
-              if (timeElapsed <= 0.75) {
-                currentLevel = entry.caffeine * (timeElapsed / 0.75);
+              if (timeElapsed <= absorptionTime) {
+                currentLevel =
+                  entry.effectiveCaffeine * (timeElapsed / absorptionTime);
               } else {
-                const decayTime = timeElapsed - 0.75;
-                currentLevel = entry.caffeine * Math.pow(0.5, decayTime / 5.5);
+                const decayTime = timeElapsed - absorptionTime;
+                currentLevel =
+                  entry.effectiveCaffeine * Math.pow(0.5, decayTime / 5.5);
               }
             }
 
@@ -831,7 +1039,10 @@ const HomeScreen = () => {
                     styles.halfLifeColorDot,
                     {
                       backgroundColor: "#FF6B35",
-                      opacity: Math.max(0.6, currentLevel / entry.caffeine),
+                      opacity: Math.max(
+                        0.6,
+                        currentLevel / entry.effectiveCaffeine
+                      ),
                     },
                   ]}
                 />
@@ -891,11 +1102,16 @@ const HomeScreen = () => {
             if (timeElapsed < 0 || timeElapsed > 12) return total;
 
             let level;
-            if (timeElapsed <= 0.75) {
-              level = entry.caffeine * (timeElapsed / 0.75);
+            const milkEffect =
+              milkTypes.find((m) => m.name === entry.milkType) || milkTypes[0];
+            const absorptionTime = (45 + milkEffect.peakDelay) / 60; // Convert to hours
+
+            if (timeElapsed <= absorptionTime) {
+              level = entry.effectiveCaffeine * (timeElapsed / absorptionTime);
             } else {
               level =
-                entry.caffeine * Math.pow(0.5, (timeElapsed - 0.75) / 5.5);
+                entry.effectiveCaffeine *
+                Math.pow(0.5, (timeElapsed - absorptionTime) / 5.5);
             }
             return total + level;
           }, 0);
@@ -1102,11 +1318,8 @@ const HomeScreen = () => {
                 <ListItem.Content>
                   <ListItem.Title>{entry.type}</ListItem.Title>
                   <ListItem.Subtitle>
-                    {entry.caffeine}mg at{" "}
-                    {entry.timestamp.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {entry.volume}mL • {entry.effectiveCaffeine}mg effective
+                    caffeine
                   </ListItem.Subtitle>
                 </ListItem.Content>
               </ListItem>
@@ -1123,41 +1336,188 @@ const HomeScreen = () => {
         <Icon name="add" size={28} color="white" />
       </TouchableOpacity>
 
-      {/* STREAMLINED Coffee Selection Modal */}
+      {/* ENHANCED Coffee Selection Modal with Milk Options */}
       <Modal
         visible={showCoffeeModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowCoffeeModal(false)}
+        onRequestClose={() => {
+          setShowCoffeeModal(false);
+          setSelectedCoffee(null);
+          setShowMilkSelector(false);
+        }}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.streamlinedModalContent}>
-            <Text style={styles.modalTitle}>Log Coffee</Text>
+          <View style={styles.enhancedModalContent}>
+            {!selectedCoffee ? (
+              // Coffee Selection
+              <>
+                <Text style={styles.modalTitle}>What are you drinking?</Text>
+                <Text style={styles.modalSubtitle}>
+                  Choose your coffee type (measurements in mL)
+                </Text>
 
-            {coffeeTypes.map((coffee) => (
-              <TouchableOpacity
-                key={coffee.name}
-                style={styles.streamlinedCoffeeOption}
-                onPress={() => addCoffeeEntry(coffee)}
-              >
-                <Icon
-                  name={coffee.icon}
-                  type="material"
-                  color={theme.primary}
-                  size={24}
-                />
-                <View style={styles.coffeeInfo}>
-                  <Text style={styles.coffeeName}>{coffee.name}</Text>
-                  <Text style={styles.caffeineContent}>
-                    {coffee.caffeine}mg
+                {/* Black Coffees */}
+                <Text style={styles.categoryTitle}>☕ Black Coffee</Text>
+                {coffeeTypes
+                  .filter((coffee) => coffee.category === "black")
+                  .map((coffee) => (
+                    <TouchableOpacity
+                      key={coffee.name}
+                      style={styles.coffeeOptionEnhanced}
+                      onPress={() => {
+                        if (coffee.category === "milk") {
+                          setSelectedCoffee(coffee);
+                          setShowMilkSelector(true);
+                        } else {
+                          addCoffeeEntry(coffee, milkTypes[0]); // No milk
+                        }
+                      }}
+                    >
+                      <Icon
+                        name={coffee.icon}
+                        type="material"
+                        color={theme.primary}
+                        size={28}
+                      />
+                      <View style={styles.coffeeInfo}>
+                        <Text style={styles.coffeeName}>{coffee.name}</Text>
+                        <Text style={styles.volumeInfo}>{coffee.volume}mL</Text>
+                        <Text style={styles.caffeineContent}>
+                          {coffee.caffeine}mg caffeine
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+
+                {/* Milk-based Coffees */}
+                <Text style={styles.categoryTitle}>🥛 Milk-based Coffee</Text>
+                {coffeeTypes
+                  .filter((coffee) => coffee.category === "milk")
+                  .map((coffee) => (
+                    <TouchableOpacity
+                      key={coffee.name}
+                      style={styles.coffeeOptionEnhanced}
+                      onPress={() => {
+                        setSelectedCoffee(coffee);
+                        setSelectedMilk(
+                          milkTypes.find(
+                            (m) =>
+                              m.name ===
+                              (coffee.defaultMilk === "semi-skimmed"
+                                ? "Semi-Skimmed"
+                                : coffee.defaultMilk === "whole"
+                                ? "Whole Milk"
+                                : "Semi-Skimmed")
+                          ) || milkTypes[2]
+                        );
+                        setShowMilkSelector(true);
+                      }}
+                    >
+                      <Icon
+                        name={coffee.icon}
+                        type="material"
+                        color={theme.primary}
+                        size={28}
+                      />
+                      <View style={styles.coffeeInfo}>
+                        <Text style={styles.coffeeName}>{coffee.name}</Text>
+                        <Text style={styles.volumeInfo}>{coffee.volume}mL</Text>
+                        <Text style={styles.caffeineContent}>
+                          {coffee.caffeine}mg caffeine + milk
+                        </Text>
+                      </View>
+                      <Icon
+                        name="arrow-forward-ios"
+                        color={theme.textLight}
+                        size={16}
+                      />
+                    </TouchableOpacity>
+                  ))}
+              </>
+            ) : (
+              // Milk Selection
+              <>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() => {
+                    setSelectedCoffee(null);
+                    setShowMilkSelector(false);
+                  }}
+                >
+                  <Icon name="arrow-back-ios" color={theme.primary} size={20} />
+                  <Text style={styles.backText}>Back to drinks</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.modalTitle}>Choose your milk</Text>
+                <Text style={styles.modalSubtitle}>
+                  Milk affects caffeine absorption - fats and proteins slow it
+                  down
+                </Text>
+
+                <View style={styles.selectedCoffeeInfo}>
+                  <Text style={styles.selectedCoffeeName}>
+                    {selectedCoffee.name}
+                  </Text>
+                  <Text style={styles.selectedCoffeeDetails}>
+                    {selectedCoffee.volume}mL • {selectedCoffee.caffeine}mg base
+                    caffeine
                   </Text>
                 </View>
-              </TouchableOpacity>
-            ))}
+
+                {milkTypes.map((milk) => {
+                  const effectiveCaffeine =
+                    selectedCoffee.caffeine * (1 - milk.caffeineReduction);
+                  const absorptionTime = 45 + milk.peakDelay;
+
+                  return (
+                    <TouchableOpacity
+                      key={milk.name}
+                      style={[
+                        styles.milkOption,
+                        selectedMilk?.name === milk.name &&
+                          styles.selectedMilkOption,
+                      ]}
+                      onPress={() => setSelectedMilk(milk)}
+                    >
+                      <View style={styles.milkInfo}>
+                        <Text style={styles.milkName}>{milk.name}</Text>
+                        <Text style={styles.milkEffects}>
+                          {Math.round(effectiveCaffeine)}mg effective • Peak in{" "}
+                          {absorptionTime}min
+                        </Text>
+                        {milk.caffeineReduction > 0 && (
+                          <Text style={styles.milkReduction}>
+                            {Math.round(milk.caffeineReduction * 100)}% slower
+                            absorption
+                          </Text>
+                        )}
+                      </View>
+                      {selectedMilk?.name === milk.name && (
+                        <Icon name="check-circle" color="#4CAF50" size={24} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={() => addCoffeeEntry(selectedCoffee, selectedMilk)}
+                >
+                  <Text style={styles.confirmButtonText}>
+                    Log {selectedCoffee.name} with {selectedMilk.name}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
 
             <TouchableOpacity
               style={styles.cancelButtonStreamlined}
-              onPress={() => setShowCoffeeModal(false)}
+              onPress={() => {
+                setShowCoffeeModal(false);
+                setSelectedCoffee(null);
+                setShowMilkSelector(false);
+              }}
             >
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
@@ -2223,6 +2583,14 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
 
+  // Remove the duplicate halfLifeColorDot and replace with this:
+  halfLifeColorIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+
   // Remove the duplicate legendDot and add new styles
   coffeeOptionImproved: {
     flexDirection: "row",
@@ -2344,6 +2712,127 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "500",
     fontSize: 14,
+  },
+
+  // Add new styles for enhanced coffee selection
+  enhancedModalContent: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    maxHeight: "85%",
+  },
+
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: theme.primary,
+    marginTop: 20,
+    marginBottom: 12,
+  },
+
+  coffeeOptionEnhanced: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: "#FAFAFA",
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+
+  volumeInfo: {
+    fontSize: 12,
+    color: "#666",
+    fontWeight: "500",
+  },
+
+  selectedCoffeeInfo: {
+    backgroundColor: "#F0F8FF",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: theme.primary + "30",
+  },
+
+  selectedCoffeeName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: theme.primary,
+  },
+
+  selectedCoffeeDetails: {
+    fontSize: 14,
+    color: theme.textLight,
+    marginTop: 4,
+  },
+
+  milkOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: "#FAFAFA",
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+
+  selectedMilkOption: {
+    backgroundColor: "#E8F5E8",
+    borderColor: "#4CAF50",
+  },
+
+  milkInfo: {
+    flex: 1,
+  },
+
+  milkName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.text,
+  },
+
+  milkEffects: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
+  },
+
+  milkReduction: {
+    fontSize: 11,
+    color: "#FF9800",
+    fontStyle: "italic",
+    marginTop: 2,
+  },
+
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+
+  backText: {
+    fontSize: 16,
+    color: theme.primary,
+    marginLeft: 4,
+  },
+
+  confirmButton: {
+    backgroundColor: theme.primary,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 16,
+  },
+
+  confirmButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 
