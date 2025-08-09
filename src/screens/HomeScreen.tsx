@@ -1553,7 +1553,7 @@ const HomeScreen = () => {
                   </View>
                 </View>
 
-                {/* SIMPLE REMOVE BUTTON */}
+                {/* SIMPLE REMOVE BUTTON with minus icon */}
                 <TouchableOpacity
                   style={styles.simpleRemoveButton}
                   onPress={() => {
@@ -1581,7 +1581,7 @@ const HomeScreen = () => {
                     );
                   }}
                 >
-                  <Icon name="delete-outline" size={20} color="#FF4444" />
+                  <Icon name="remove" size={20} color="#FF4444" />
                 </TouchableOpacity>
               </View>
             ))
