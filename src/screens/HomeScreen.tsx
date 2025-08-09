@@ -1522,24 +1522,71 @@ const HomeScreen = () => {
           </View>
         )}
 
-        {/* Coffee Log - Simplified */}
-        {todaysEntries.length > 0 && (
-          <Card containerStyle={styles.logCard}>
-            <Text style={styles.sectionTitle}>Today's Coffee Log</Text>
-            {todaysEntries.map((entry) => (
-              <ListItem key={entry.id} containerStyle={styles.logItem}>
-                <Icon name="local-cafe" color={theme.primary} />
-                <ListItem.Content>
-                  <ListItem.Title>{entry.type}</ListItem.Title>
-                  <ListItem.Subtitle>
-                    {entry.volume}mL • {entry.effectiveCaffeine}mg effective
-                    caffeine
-                  </ListItem.Subtitle>
-                </ListItem.Content>
-              </ListItem>
-            ))}
-          </Card>
-        )}
+        {/* Coffee Log - Simplified with Remove Buttons */}
+        <Card containerStyle={styles.logCard}>
+          <Text style={styles.logTitle}>☕ Today's Coffee Log</Text>
+          {getTodaysCoffeeEntries().length === 0 ? (
+            <Text style={styles.emptyLogText}>No coffee logged today</Text>
+          ) : (
+            getTodaysCoffeeEntries().map((entry) => (
+              <View key={entry.id} style={styles.logEntryWithRemove}>
+                <View style={styles.logEntryContent}>
+                  <Icon
+                    name="local-cafe"
+                    type="material"
+                    color={theme.primary}
+                    size={20}
+                  />
+                  <View style={styles.logEntryDetails}>
+                    <Text style={styles.logEntryType}>
+                      {entry.type}{" "}
+                      {entry.milkType !== "None" && `+ ${entry.milkType}`}
+                    </Text>
+                    <Text style={styles.logEntryTime}>
+                      {entry.timestamp.toLocaleTimeString("en-GB", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                      })}{" "}
+                      • {entry.volume}mL • {entry.caffeine}mg
+                    </Text>
+                  </View>
+                </View>
+
+                {/* SIMPLE REMOVE BUTTON */}
+                <TouchableOpacity
+                  style={styles.simpleRemoveButton}
+                  onPress={() => {
+                    Alert.alert(
+                      "Remove Coffee",
+                      `Remove ${
+                        entry.type
+                      } from ${entry.timestamp.toLocaleTimeString("en-GB", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}?`,
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Remove",
+                          style: "destructive",
+                          onPress: () => {
+                            setCoffeeEntries((prev) =>
+                              prev.filter((coffee) => coffee.id !== entry.id)
+                            );
+                            showSuccessToast(`Removed ${entry.type}`);
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <Icon name="delete-outline" size={20} color="#FF4444" />
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
+        </Card>
       </ScrollView>
 
       {/* Floating Add Coffee Button */}
@@ -3654,6 +3701,57 @@ const styles = StyleSheet.create({
     color: "#FF6B35",
     fontWeight: "500",
     minWidth: 60,
+  },
+
+  logEntryWithRemove: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+
+  logEntryContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  logEntryDetails: {
+    flex: 1,
+    marginLeft: 12,
+  },
+
+  logEntryType: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+  },
+
+  logEntryTime: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
+  },
+
+  simpleRemoveButton: {
+    padding: 8,
+    borderRadius: 15,
+    backgroundColor: "rgba(255, 68, 68, 0.1)",
+  },
+
+  logTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 15,
+    color: "#333",
+  },
+
+  emptyLogText: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+    marginBottom: 10,
   },
 });
 
