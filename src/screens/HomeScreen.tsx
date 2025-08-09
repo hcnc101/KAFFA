@@ -1076,6 +1076,197 @@ const HomeScreen = () => {
             </Text>
           </View>
         </View>
+
+        {/* REDESIGNED HALF-LIFE LEGEND - Much clearer and not cut off */}
+        <View style={styles.improvedHalfLifeLegend}>
+          <Text style={styles.improvedLegendTitle}>
+            ☕ Active Caffeine Tracking
+          </Text>
+
+          {getTodaysCoffeeEntries().length === 0 ? (
+            <View style={styles.noCoffeePlaceholder}>
+              <Text style={styles.noCoffeeText}>No coffee logged today</Text>
+              <Text style={styles.noCoffeeSubtext}>
+                Tap + to add your first coffee
+              </Text>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.legendSubtitle}>
+                Real-time caffeine levels from today's drinks
+              </Text>
+
+              {getTodaysCoffeeEntries().map((entry, index) => {
+                const now = currentTime.getTime();
+                const timeElapsed =
+                  (now - entry.timestamp.getTime()) / (1000 * 60 * 60);
+                let currentLevel = 0;
+
+                const milkEffect =
+                  milkTypes.find((m) => m.name === entry.milkType) ||
+                  milkTypes[0];
+                const absorptionTime = (45 + milkEffect.peakDelay) / 60;
+
+                if (timeElapsed >= 0 && timeElapsed <= 24) {
+                  if (timeElapsed <= absorptionTime) {
+                    currentLevel =
+                      entry.effectiveCaffeine * (timeElapsed / absorptionTime);
+                  } else {
+                    const decayTime = timeElapsed - absorptionTime;
+                    currentLevel =
+                      entry.effectiveCaffeine * Math.pow(0.5, decayTime / 5.5);
+                  }
+                }
+
+                if (currentLevel < 1) return null;
+
+                const timeRemaining = 5.5 - (timeElapsed - absorptionTime);
+                const phaseText =
+                  timeElapsed <= absorptionTime ? "Absorbing" : "Decaying";
+                const statusColor =
+                  timeElapsed <= absorptionTime ? "#4CAF50" : "#FF9800";
+
+                return (
+                  <View key={entry.id} style={styles.coffeeCard}>
+                    <View style={styles.coffeeCardHeader}>
+                      <View style={styles.coffeeCardLeft}>
+                        <Text style={styles.coffeeCardTitle}>{entry.type}</Text>
+                        <Text style={styles.coffeeCardDetails}>
+                          {entry.volume}mL •{" "}
+                          {entry.milkType !== "No Milk"
+                            ? `with ${entry.milkType.toLowerCase()}`
+                            : "black"}
+                        </Text>
+                      </View>
+                      <View style={styles.coffeeCardRight}>
+                        <Text style={styles.currentCaffeineLevel}>
+                          {Math.round(currentLevel)}mg
+                        </Text>
+                        <Text
+                          style={[
+                            styles.phaseIndicator,
+                            { color: statusColor },
+                          ]}
+                        >
+                          {phaseText}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.coffeeCardProgress}>
+                      <View style={styles.progressBarContainer}>
+                        <View
+                          style={[
+                            styles.progressBar,
+                            {
+                              width: `${
+                                (currentLevel / entry.effectiveCaffeine) * 100
+                              }%`,
+                              backgroundColor: statusColor,
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.progressText}>
+                        {Math.round(
+                          (currentLevel / entry.effectiveCaffeine) * 100
+                        )}
+                        % remaining
+                      </Text>
+                    </View>
+
+                    <View style={styles.coffeeCardFooter}>
+                      <Text style={styles.timestampText}>
+                        Started{" "}
+                        {entry.timestamp.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </Text>
+                      {timeElapsed > absorptionTime && timeRemaining > 0 && (
+                        <Text style={styles.halfLifeText}>
+                          {timeRemaining.toFixed(1)}h until half-life
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+
+              {/* Total Summary */}
+              <View style={styles.totalSummaryCard}>
+                <Text style={styles.totalSummaryTitle}>
+                  Total Active Caffeine
+                </Text>
+                <Text style={styles.totalSummaryAmount}>
+                  {Math.round(getCurrentCaffeineLevel())}mg
+                </Text>
+                <Text style={styles.totalSummarySubtext}>
+                  from {getTodaysCoffeeEntries().length} drink
+                  {getTodaysCoffeeEntries().length !== 1 ? "s" : ""} today
+                </Text>
+              </View>
+            </>
+          )}
+        </View>
+
+        {/* CLEARER SCIENCE ZONES EXPLANATION */}
+        <View style={styles.improvedScienceZones}>
+          <Text style={styles.scienceZonesTitle}>☀️ Coffee Science Zones</Text>
+
+          <View style={styles.scienceZoneCard}>
+            <View style={styles.zoneCardHeader}>
+              <View
+                style={[
+                  styles.zoneIndicatorLarge,
+                  { backgroundColor: "#00BCD4" },
+                ]}
+              />
+              <Text style={styles.zoneCardTitle}>Cortisol Peak Zone</Text>
+            </View>
+            <Text style={styles.zoneCardDescription}>
+              Wait 90 minutes after waking before drinking coffee for optimal
+              effectiveness
+            </Text>
+            <Text style={styles.zoneCardTime}>
+              {wakeUpTime.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}{" "}
+              -{" "}
+              {new Date(wakeUpTime.getTime() + 90 * 60000).toLocaleTimeString(
+                [],
+                { hour: "2-digit", minute: "2-digit" }
+              )}
+            </Text>
+          </View>
+
+          <View style={styles.scienceZoneCard}>
+            <View style={styles.zoneCardHeader}>
+              <View
+                style={[
+                  styles.zoneIndicatorLarge,
+                  { backgroundColor: "#9C27B0" },
+                ]}
+              />
+              <Text style={styles.zoneCardTitle}>Sleep Impact Zone</Text>
+            </View>
+            <Text style={styles.zoneCardDescription}>
+              Coffee consumed now may affect your sleep quality tonight
+            </Text>
+            <Text style={styles.zoneCardTime}>
+              {new Date(bedTime.getTime() - 6 * 60 * 60000).toLocaleTimeString(
+                [],
+                { hour: "2-digit", minute: "2-digit" }
+              )}{" "}
+              -{" "}
+              {bedTime.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+          </View>
+        </View>
       </View>
     );
   };
@@ -2833,6 +3024,256 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+
+  // Keep only ONE legendDot (remove the duplicate)
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+
+  // Rename the duplicate halfLifeColorDot to avoid conflict
+  halfLifeColorIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+
+  // NEW IMPROVED STYLES FOR CLEARER DISPLAY
+  improvedHalfLifeLegend: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+
+  improvedLegendTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#FF6B35",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+
+  legendSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 20,
+    fontStyle: "italic",
+  },
+
+  noCoffeePlaceholder: {
+    alignItems: "center",
+    paddingVertical: 30,
+  },
+
+  noCoffeeText: {
+    fontSize: 16,
+    color: "#999",
+    fontWeight: "500",
+  },
+
+  noCoffeeSubtext: {
+    fontSize: 14,
+    color: "#BBB",
+    marginTop: 4,
+  },
+
+  coffeeCard: {
+    backgroundColor: "#FAFAFA",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+
+  coffeeCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+
+  coffeeCardLeft: {
+    flex: 1,
+  },
+
+  coffeeCardTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 2,
+  },
+
+  coffeeCardDetails: {
+    fontSize: 12,
+    color: "#666",
+  },
+
+  coffeeCardRight: {
+    alignItems: "flex-end",
+  },
+
+  currentCaffeineLevel: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#FF6B35",
+  },
+
+  phaseIndicator: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+
+  coffeeCardProgress: {
+    marginBottom: 12,
+  },
+
+  progressBarContainer: {
+    height: 6,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 3,
+    marginBottom: 6,
+    overflow: "hidden",
+  },
+
+  progressBar: {
+    height: "100%",
+    borderRadius: 3,
+  },
+
+  progressText: {
+    fontSize: 12,
+    color: "#666",
+    textAlign: "right",
+  },
+
+  coffeeCardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  timestampText: {
+    fontSize: 12,
+    color: "#999",
+  },
+
+  halfLifeText: {
+    fontSize: 12,
+    color: "#FF9800",
+    fontWeight: "500",
+  },
+
+  totalSummaryCard: {
+    backgroundColor: "#F0F8FF",
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#FF6B35",
+  },
+
+  totalSummaryTitle: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 4,
+  },
+
+  totalSummaryAmount: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#FF6B35",
+  },
+
+  totalSummarySubtext: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 2,
+  },
+
+  improvedScienceZones: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+
+  scienceZonesTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+
+  scienceZoneCard: {
+    backgroundColor: "#FAFAFA",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+
+  zoneCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+
+  zoneIndicatorLarge: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+
+  zoneCardTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+  },
+
+  zoneCardDescription: {
+    fontSize: 14,
+    color: "#666",
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+
+  zoneCardTime: {
+    fontSize: 13,
+    color: "#999",
+    fontWeight: "500",
   },
 });
 
