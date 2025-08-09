@@ -3339,7 +3339,6 @@ const styles = StyleSheet.create({
   currentMinutesRefined: {
     fontSize: 10,
     fontWeight: "bold",
-    color: "#FF6B35",
     backgroundColor: "#FF6B35",
     color: "white",
     paddingHorizontal: 4,
