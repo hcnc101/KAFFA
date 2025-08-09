@@ -1412,15 +1412,46 @@ const HomeScreen = () => {
                         },
                       ]}
                     />
-                    <Text style={styles.halfLifeItemText}>
-                      {entry.type}: {Math.round(currentLevel)}mg remaining
-                      (started{" "}
-                      {entry.timestamp.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                      )
-                    </Text>
+                    <View style={styles.halfLifeItemContent}>
+                      <Text style={styles.halfLifeItemText}>
+                        {entry.type}: {Math.round(currentLevel)}mg remaining
+                        (started{" "}
+                        {entry.timestamp.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                        )
+                      </Text>
+
+                      {/* ADD BACK THE ABSORPTION PROGRESS BAR */}
+                      <View style={styles.absorptionProgressContainer}>
+                        <View style={styles.absorptionProgressBar}>
+                          <View
+                            style={[
+                              styles.absorptionProgressFill,
+                              {
+                                width: `${Math.min(
+                                  (currentLevel / entry.effectiveCaffeine) *
+                                    100,
+                                  100
+                                )}%`,
+                                backgroundColor: "#FF6B35",
+                                opacity: Math.max(
+                                  0.7,
+                                  currentLevel / entry.effectiveCaffeine
+                                ),
+                              },
+                            ]}
+                          />
+                        </View>
+                        <Text style={styles.absorptionPercentageText}>
+                          {Math.round(
+                            (currentLevel / entry.effectiveCaffeine) * 100
+                          )}
+                          % active
+                        </Text>
+                      </View>
+                    </View>
                   </View>
                 );
               })}
@@ -3592,6 +3623,38 @@ const styles = StyleSheet.create({
   },
 
   // ... rest of existing unique styles ...
+
+  halfLifeItemContent: {
+    flex: 1,
+    marginLeft: 8,
+  },
+
+  absorptionProgressContainer: {
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  absorptionProgressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: "#FFE0D6",
+    borderRadius: 2,
+    marginRight: 8,
+    overflow: "hidden",
+  },
+
+  absorptionProgressFill: {
+    height: "100%",
+    borderRadius: 2,
+  },
+
+  absorptionPercentageText: {
+    fontSize: 12,
+    color: "#FF6B35",
+    fontWeight: "500",
+    minWidth: 60,
+  },
 });
 
 export default HomeScreen;
