@@ -191,6 +191,12 @@ const milkTypes = [
     peakDelay: 20,
   },
   {
+    name: "Coconut Milk",
+    absorptionDelay: 10,
+    caffeineReduction: 0.08, // 8% reduction
+    peakDelay: 15,
+  },
+  {
     name: "Oat Milk",
     absorptionDelay: 6,
     caffeineReduction: 0.03, // 3% reduction
