@@ -1809,56 +1809,6 @@ const HomeScreen = () => {
         </Animated.View>
       )}
 
-      {/* IMPROVED Coffee Selection Modal with Preview */}
-      <Modal
-        visible={showCoffeeModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowCoffeeModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>What did you drink?</Text>
-            <Text style={styles.modalSubtitle}>
-              Your coffee will appear as an orange arc on the clock
-            </Text>
-
-            {coffeeTypes.map((coffee) => (
-              <TouchableOpacity
-                key={coffee.name}
-                style={styles.coffeeOptionImproved}
-                onPress={() => addCoffeeEntry(coffee)}
-              >
-                <Icon
-                  name={coffee.icon}
-                  type="material"
-                  color={theme.primary}
-                  size={28}
-                />
-                <View style={styles.coffeeInfo}>
-                  <Text style={styles.coffeeName}>{coffee.name}</Text>
-                  <Text style={styles.caffeineContent}>
-                    {coffee.caffeine}mg caffeine
-                  </Text>
-                  <Text style={styles.coffeePreview}>
-                    Will show 12-hour decay arc on clock
-                  </Text>
-                </View>
-                <View style={styles.addIndicator}>
-                  <Icon name="add-circle" color="#4CAF50" size={24} />
-                </View>
-              </TouchableOpacity>
-            ))}
-
-            <Button
-              title="Cancel"
-              onPress={() => setShowCoffeeModal(false)}
-              buttonStyle={styles.cancelButton}
-            />
-          </View>
-        </View>
-      </Modal>
-
       {/* Wake-up Time Settings Modal */}
       <Modal
         visible={showWakeUpSettings}
@@ -2198,7 +2148,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.4)", // Lighter, more consistent overlay
     justifyContent: "center",
     alignItems: "center",
   },
@@ -3004,12 +2954,14 @@ const styles = StyleSheet.create({
     margin: 20,
     width: "90%",
     maxWidth: 400,
-    maxHeight: "85%", // Slightly smaller to ensure it fits
+    maxHeight: "85%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
     shadowRadius: 20,
     elevation: 10,
+    // Remove any border that might be causing the dark frame
+    borderWidth: 0,
   },
 
   categoryTitle: {
@@ -3786,21 +3738,6 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     justifyContent: "center",
     alignItems: "center",
-  },
-
-  enhancedModalContent: {
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 20,
-    margin: 20,
-    width: "90%",
-    maxWidth: 400,
-    maxHeight: "85%", // Slightly smaller to ensure it fits
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
   },
 });
 
