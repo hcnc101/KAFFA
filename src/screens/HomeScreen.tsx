@@ -1597,7 +1597,7 @@ const HomeScreen = () => {
         <Icon name="add" size={28} color="white" />
       </TouchableOpacity>
 
-      {/* ENHANCED Coffee Selection Modal with Milk Options */}
+      {/* ENHANCED Coffee Selection Modal with PROPER SCROLLING */}
       <Modal
         visible={showCoffeeModal}
         animationType="slide"
@@ -1609,12 +1609,11 @@ const HomeScreen = () => {
         }}
       >
         <View style={styles.modalOverlay}>
-          <ScrollView
-            style={styles.modalScrollView}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.modalScrollContent}
-          >
-            <View style={styles.enhancedModalContent}>
+          <View style={styles.modalContent}>
+            <ScrollView
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
               {!selectedCoffee ? (
                 // Coffee Selection
                 <>
@@ -1704,9 +1703,20 @@ const HomeScreen = () => {
                         />
                       </TouchableOpacity>
                     ))}
+
+                  <TouchableOpacity
+                    style={styles.cancelButtonStreamlined}
+                    onPress={() => {
+                      setShowCoffeeModal(false);
+                      setSelectedCoffee(null);
+                      setShowMilkSelector(false);
+                    }}
+                  >
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </TouchableOpacity>
                 </>
               ) : (
-                // Milk Selection - also needs scrolling
+                // Milk Selection
                 <>
                   <TouchableOpacity
                     style={styles.backButton}
@@ -1782,21 +1792,21 @@ const HomeScreen = () => {
                       Log {selectedCoffee.name} with {selectedMilk.name}
                     </Text>
                   </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.cancelButtonStreamlined}
+                    onPress={() => {
+                      setShowCoffeeModal(false);
+                      setSelectedCoffee(null);
+                      setShowMilkSelector(false);
+                    }}
+                  >
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </TouchableOpacity>
                 </>
               )}
-
-              <TouchableOpacity
-                style={styles.cancelButtonStreamlined}
-                onPress={() => {
-                  setShowCoffeeModal(false);
-                  setSelectedCoffee(null);
-                  setShowMilkSelector(false);
-                }}
-              >
-                <Text style={styles.cancelText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
         </View>
       </Modal>
 
@@ -2148,7 +2158,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.4)", // Lighter, more consistent overlay
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -2157,7 +2167,16 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    maxHeight: "80%",
+    maxHeight: "80%", // This fixes the height issue
+    width: "90%",
+    maxWidth: 400,
+  },
+  modalScrollView: {
+    flex: 1,
+  },
+  modalScrollContent: {
+    padding: 20,
+    paddingBottom: 30,
   },
   modalTitle: {
     fontSize: 20,
@@ -2213,15 +2232,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   legendDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    marginRight: 8,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
   },
   enhancedLegendText: {
     fontSize: 13,
@@ -2246,10 +2260,9 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   halfLifeText: {
-    fontSize: 13,
-    color: theme.caffeine,
-    textAlign: "center",
-    lineHeight: 18,
+    fontSize: 12,
+    color: "#FF9800",
+    fontWeight: "500",
   },
   coffeeList: {
     marginHorizontal: 20,
@@ -2445,7 +2458,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    marginRight: 12,
+    backgroundColor: "#FF6B35",
   },
 
   halfLifeItemText: {
@@ -2948,20 +2961,7 @@ const styles = StyleSheet.create({
 
   // Add new styles for enhanced coffee selection
   enhancedModalContent: {
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 20,
-    margin: 20,
-    width: "90%",
-    maxWidth: 400,
-    maxHeight: "85%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
-    // Remove any border that might be causing the dark frame
-    borderWidth: 0,
+    flex: 1,
   },
 
   categoryTitle: {
@@ -3226,12 +3226,6 @@ const styles = StyleSheet.create({
   timestampText: {
     fontSize: 12,
     color: "#999",
-  },
-
-  halfLifeText: {
-    fontSize: 12,
-    color: "#FF9800",
-    fontWeight: "500",
   },
 
   totalSummaryCard: {
@@ -3726,18 +3720,6 @@ const styles = StyleSheet.create({
     color: "#666",
     fontStyle: "italic",
     marginBottom: 10,
-  },
-
-  modalScrollView: {
-    flex: 1,
-    width: "100%",
-  },
-
-  modalScrollContent: {
-    flexGrow: 1,
-    paddingBottom: 20,
-    justifyContent: "center",
-    alignItems: "center",
   },
 });
 
