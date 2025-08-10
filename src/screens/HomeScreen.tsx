@@ -1609,180 +1609,194 @@ const HomeScreen = () => {
         }}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.enhancedModalContent}>
-            {!selectedCoffee ? (
-              // Coffee Selection
-              <>
-                <Text style={styles.modalTitle}>What are you drinking?</Text>
-                <Text style={styles.modalSubtitle}>
-                  Choose your coffee type (measurements in mL)
-                </Text>
-
-                {/* Black Coffees */}
-                <Text style={styles.categoryTitle}>☕ Black Coffee</Text>
-                {coffeeTypes
-                  .filter((coffee) => coffee.category === "black")
-                  .map((coffee) => (
-                    <TouchableOpacity
-                      key={coffee.name}
-                      style={styles.coffeeOptionEnhanced}
-                      onPress={() => {
-                        if (coffee.category === "milk") {
-                          setSelectedCoffee(coffee);
-                          setShowMilkSelector(true);
-                        } else {
-                          addCoffeeEntry(coffee, milkTypes[0]); // No milk
-                        }
-                      }}
-                    >
-                      <Icon
-                        name={coffee.icon}
-                        type="material"
-                        color={theme.primary}
-                        size={28}
-                      />
-                      <View style={styles.coffeeInfo}>
-                        <Text style={styles.coffeeName}>{coffee.name}</Text>
-                        <Text style={styles.volumeInfo}>{coffee.volume}mL</Text>
-                        <Text style={styles.caffeineContent}>
-                          {coffee.caffeine}mg caffeine
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-
-                {/* Milk-based Coffees */}
-                <Text style={styles.categoryTitle}>🥛 Milk-based Coffee</Text>
-                {coffeeTypes
-                  .filter((coffee) => coffee.category === "milk")
-                  .map((coffee) => (
-                    <TouchableOpacity
-                      key={coffee.name}
-                      style={styles.coffeeOptionEnhanced}
-                      onPress={() => {
-                        setSelectedCoffee(coffee);
-                        setSelectedMilk(
-                          milkTypes.find(
-                            (m) =>
-                              m.name ===
-                              (coffee.defaultMilk === "semi-skimmed"
-                                ? "Semi-Skimmed"
-                                : coffee.defaultMilk === "whole"
-                                ? "Whole Milk"
-                                : "Semi-Skimmed")
-                          ) || milkTypes[2]
-                        );
-                        setShowMilkSelector(true);
-                      }}
-                    >
-                      <Icon
-                        name={coffee.icon}
-                        type="material"
-                        color={theme.primary}
-                        size={28}
-                      />
-                      <View style={styles.coffeeInfo}>
-                        <Text style={styles.coffeeName}>{coffee.name}</Text>
-                        <Text style={styles.volumeInfo}>{coffee.volume}mL</Text>
-                        <Text style={styles.caffeineContent}>
-                          {coffee.caffeine}mg caffeine + milk
-                        </Text>
-                      </View>
-                      <Icon
-                        name="arrow-forward-ios"
-                        color={theme.textLight}
-                        size={16}
-                      />
-                    </TouchableOpacity>
-                  ))}
-              </>
-            ) : (
-              // Milk Selection
-              <>
-                <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={() => {
-                    setSelectedCoffee(null);
-                    setShowMilkSelector(false);
-                  }}
-                >
-                  <Icon name="arrow-back-ios" color={theme.primary} size={20} />
-                  <Text style={styles.backText}>Back to drinks</Text>
-                </TouchableOpacity>
-
-                <Text style={styles.modalTitle}>Choose your milk</Text>
-                <Text style={styles.modalSubtitle}>
-                  Milk affects caffeine absorption - fats and proteins slow it
-                  down
-                </Text>
-
-                <View style={styles.selectedCoffeeInfo}>
-                  <Text style={styles.selectedCoffeeName}>
-                    {selectedCoffee.name}
+          <ScrollView
+            style={styles.modalScrollView}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.modalScrollContent}
+          >
+            <View style={styles.enhancedModalContent}>
+              {!selectedCoffee ? (
+                // Coffee Selection
+                <>
+                  <Text style={styles.modalTitle}>What are you drinking?</Text>
+                  <Text style={styles.modalSubtitle}>
+                    Choose your coffee type (measurements in mL)
                   </Text>
-                  <Text style={styles.selectedCoffeeDetails}>
-                    {selectedCoffee.volume}mL • {selectedCoffee.caffeine}mg base
-                    caffeine
-                  </Text>
-                </View>
 
-                {milkTypes.map((milk) => {
-                  const effectiveCaffeine =
-                    selectedCoffee.caffeine * (1 - milk.caffeineReduction);
-                  const absorptionTime = 45 + milk.peakDelay;
-
-                  return (
-                    <TouchableOpacity
-                      key={milk.name}
-                      style={[
-                        styles.milkOption,
-                        selectedMilk?.name === milk.name &&
-                          styles.selectedMilkOption,
-                      ]}
-                      onPress={() => setSelectedMilk(milk)}
-                    >
-                      <View style={styles.milkInfo}>
-                        <Text style={styles.milkName}>{milk.name}</Text>
-                        <Text style={styles.milkEffects}>
-                          {Math.round(effectiveCaffeine)}mg effective • Peak in{" "}
-                          {absorptionTime}min
-                        </Text>
-                        {milk.caffeineReduction > 0 && (
-                          <Text style={styles.milkReduction}>
-                            {Math.round(milk.caffeineReduction * 100)}% slower
-                            absorption
+                  {/* Black Coffees */}
+                  <Text style={styles.categoryTitle}>☕ Black Coffee</Text>
+                  {coffeeTypes
+                    .filter((coffee) => coffee.category === "black")
+                    .map((coffee) => (
+                      <TouchableOpacity
+                        key={coffee.name}
+                        style={styles.coffeeOptionEnhanced}
+                        onPress={() => {
+                          if (coffee.category === "milk") {
+                            setSelectedCoffee(coffee);
+                            setShowMilkSelector(true);
+                          } else {
+                            addCoffeeEntry(coffee, milkTypes[0]); // No milk
+                          }
+                        }}
+                      >
+                        <Icon
+                          name={coffee.icon}
+                          type="material"
+                          color={theme.primary}
+                          size={28}
+                        />
+                        <View style={styles.coffeeInfo}>
+                          <Text style={styles.coffeeName}>{coffee.name}</Text>
+                          <Text style={styles.volumeInfo}>
+                            {coffee.volume}mL
                           </Text>
-                        )}
-                      </View>
-                      {selectedMilk?.name === milk.name && (
-                        <Icon name="check-circle" color="#4CAF50" size={24} />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
+                          <Text style={styles.caffeineContent}>
+                            {coffee.caffeine}mg caffeine
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
 
-                <TouchableOpacity
-                  style={styles.confirmButton}
-                  onPress={() => addCoffeeEntry(selectedCoffee, selectedMilk)}
-                >
-                  <Text style={styles.confirmButtonText}>
-                    Log {selectedCoffee.name} with {selectedMilk.name}
+                  {/* Milk-based Coffees */}
+                  <Text style={styles.categoryTitle}>🥛 Milk-based Coffee</Text>
+                  {coffeeTypes
+                    .filter((coffee) => coffee.category === "milk")
+                    .map((coffee) => (
+                      <TouchableOpacity
+                        key={coffee.name}
+                        style={styles.coffeeOptionEnhanced}
+                        onPress={() => {
+                          setSelectedCoffee(coffee);
+                          setSelectedMilk(
+                            milkTypes.find(
+                              (m) =>
+                                m.name ===
+                                (coffee.defaultMilk === "semi-skimmed"
+                                  ? "Semi-Skimmed"
+                                  : coffee.defaultMilk === "whole"
+                                  ? "Whole Milk"
+                                  : "Semi-Skimmed")
+                            ) || milkTypes[2]
+                          );
+                          setShowMilkSelector(true);
+                        }}
+                      >
+                        <Icon
+                          name={coffee.icon}
+                          type="material"
+                          color={theme.primary}
+                          size={28}
+                        />
+                        <View style={styles.coffeeInfo}>
+                          <Text style={styles.coffeeName}>{coffee.name}</Text>
+                          <Text style={styles.volumeInfo}>
+                            {coffee.volume}mL
+                          </Text>
+                          <Text style={styles.caffeineContent}>
+                            {coffee.caffeine}mg caffeine + milk
+                          </Text>
+                        </View>
+                        <Icon
+                          name="arrow-forward-ios"
+                          color={theme.textLight}
+                          size={16}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                </>
+              ) : (
+                // Milk Selection - also needs scrolling
+                <>
+                  <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => {
+                      setSelectedCoffee(null);
+                      setShowMilkSelector(false);
+                    }}
+                  >
+                    <Icon
+                      name="arrow-back-ios"
+                      color={theme.primary}
+                      size={20}
+                    />
+                    <Text style={styles.backText}>Back to drinks</Text>
+                  </TouchableOpacity>
+
+                  <Text style={styles.modalTitle}>Choose your milk</Text>
+                  <Text style={styles.modalSubtitle}>
+                    Milk affects caffeine absorption - fats and proteins slow it
+                    down
                   </Text>
-                </TouchableOpacity>
-              </>
-            )}
 
-            <TouchableOpacity
-              style={styles.cancelButtonStreamlined}
-              onPress={() => {
-                setShowCoffeeModal(false);
-                setSelectedCoffee(null);
-                setShowMilkSelector(false);
-              }}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
+                  <View style={styles.selectedCoffeeInfo}>
+                    <Text style={styles.selectedCoffeeName}>
+                      {selectedCoffee.name}
+                    </Text>
+                    <Text style={styles.selectedCoffeeDetails}>
+                      {selectedCoffee.volume}mL • {selectedCoffee.caffeine}mg
+                      base caffeine
+                    </Text>
+                  </View>
+
+                  {milkTypes.map((milk) => {
+                    const effectiveCaffeine =
+                      selectedCoffee.caffeine * (1 - milk.caffeineReduction);
+                    const absorptionTime = 45 + milk.peakDelay;
+
+                    return (
+                      <TouchableOpacity
+                        key={milk.name}
+                        style={[
+                          styles.milkOption,
+                          selectedMilk?.name === milk.name &&
+                            styles.selectedMilkOption,
+                        ]}
+                        onPress={() => setSelectedMilk(milk)}
+                      >
+                        <View style={styles.milkInfo}>
+                          <Text style={styles.milkName}>{milk.name}</Text>
+                          <Text style={styles.milkEffects}>
+                            {Math.round(effectiveCaffeine)}mg effective • Peak
+                            in {absorptionTime}min
+                          </Text>
+                          {milk.caffeineReduction > 0 && (
+                            <Text style={styles.milkReduction}>
+                              {Math.round(milk.caffeineReduction * 100)}% slower
+                              absorption
+                            </Text>
+                          )}
+                        </View>
+                        {selectedMilk?.name === milk.name && (
+                          <Icon name="check-circle" color="#4CAF50" size={24} />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+
+                  <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={() => addCoffeeEntry(selectedCoffee, selectedMilk)}
+                  >
+                    <Text style={styles.confirmButtonText}>
+                      Log {selectedCoffee.name} with {selectedMilk.name}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              <TouchableOpacity
+                style={styles.cancelButtonStreamlined}
+                onPress={() => {
+                  setShowCoffeeModal(false);
+                  setSelectedCoffee(null);
+                  setShowMilkSelector(false);
+                }}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
       </Modal>
 
@@ -2184,8 +2198,9 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
     backgroundColor: "white",
@@ -2984,10 +2999,17 @@ const styles = StyleSheet.create({
   // Add new styles for enhanced coffee selection
   enhancedModalContent: {
     backgroundColor: "white",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    maxHeight: "85%",
+    borderRadius: 20,
+    padding: 20,
+    margin: 20,
+    width: "90%",
+    maxWidth: 400,
+    maxHeight: "85%", // Slightly smaller to ensure it fits
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
   },
 
   categoryTitle: {
@@ -3752,6 +3774,33 @@ const styles = StyleSheet.create({
     color: "#666",
     fontStyle: "italic",
     marginBottom: 10,
+  },
+
+  modalScrollView: {
+    flex: 1,
+    width: "100%",
+  },
+
+  modalScrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  enhancedModalContent: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 20,
+    margin: 20,
+    width: "90%",
+    maxWidth: 400,
+    maxHeight: "85%", // Slightly smaller to ensure it fits
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
   },
 });
 
