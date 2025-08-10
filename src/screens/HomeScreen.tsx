@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { Text, Card, Button, Icon, Input, ListItem } from "@rneui/themed";
 import Svg, { Circle, Path, Text as SvgText, Line, G } from "react-native-svg";
+import { WidgetDataManager } from "../utils/WidgetDataManager";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const CLOCK_SIZE = SCREEN_WIDTH * 0.8;
@@ -482,6 +483,14 @@ const HomeScreen = () => {
 
     Vibration.vibrate(50);
     logActivity("significant_activity");
+
+    // Update widget data
+    WidgetDataManager.updateWidgetData({
+      coffeeEntries: [...coffeeEntries, entry],
+      currentCaffeine: getCurrentCaffeineLevel(),
+      wakeUpTime: wakeUpTime.toISOString(),
+      bedTime: bedTime.toISOString(),
+    });
   };
 
   // Smooth toast notification
@@ -1267,6 +1276,26 @@ const HomeScreen = () => {
   const cortisolInfo = getCortisolWindow();
   const sleepInfo = getSleepImpactWindow();
   const todaysEntries = getTodaysCoffeeEntries();
+
+  // Add this useEffect to update widget data when caffeine levels change
+  useEffect(() => {
+    const updateWidgetData = () => {
+      WidgetDataManager.updateWidgetData({
+        coffeeEntries: getTodaysCoffeeEntries(),
+        currentCaffeine: getCurrentCaffeineLevel(),
+        wakeUpTime: wakeUpTime.toISOString(),
+        bedTime: bedTime.toISOString(),
+      });
+    };
+
+    // Update widget data every 5 minutes
+    const widgetTimer = setInterval(updateWidgetData, 5 * 60 * 1000);
+
+    // Also update when coffee entries change
+    updateWidgetData();
+
+    return () => clearInterval(widgetTimer);
+  }, [coffeeEntries, currentTime, wakeUpTime, bedTime]);
 
   return (
     <View style={styles.container}>
