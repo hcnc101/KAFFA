@@ -2815,13 +2815,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 12,
-  },
-
   legendText: {
     fontSize: 14,
     color: "#333",
@@ -2853,14 +2846,6 @@ const styles = StyleSheet.create({
     color: "#666",
     marginBottom: 4,
     lineHeight: 16,
-  },
-
-  // Fix the duplicate legendDot error
-  halfLifeColorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 12,
   },
 
   // Remove the duplicate halfLifeColorDot and replace with this:
@@ -3109,22 +3094,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
-  },
-
-  // Keep only ONE legendDot (remove the duplicate)
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 12,
-  },
-
-  // Rename the duplicate halfLifeColorDot to avoid conflict
-  halfLifeColorIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 12,
   },
 
   // NEW IMPROVED STYLES FOR CLEARER DISPLAY
@@ -3663,14 +3632,6 @@ const styles = StyleSheet.create({
 
   // Remove all duplicate styles and keep only unique ones
   // Fix the linter errors by removing duplicate style definitions
-
-  // Keep only essential styles without duplicates
-  halfLifeColorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#FF6B35",
-  },
 
   // ... rest of existing unique styles ...
 

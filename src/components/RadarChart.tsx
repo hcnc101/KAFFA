@@ -75,9 +75,8 @@ const RadarChart: React.FC<RadarChartProps> = ({
   const labelEls = labels.map((label, i) => {
     const [x, y] = getPoint(max + 1.2, i, radius + labelOffset);
     return (
-      <>
+      <React.Fragment key={`label-group-${i}`}>
         <SvgText
-          key={label + "-label"}
           x={x}
           y={y - 7}
           fontSize={14}
@@ -89,7 +88,6 @@ const RadarChart: React.FC<RadarChartProps> = ({
           {label}
         </SvgText>
         <SvgText
-          key={label + "-value"}
           x={x}
           y={y + 10}
           fontSize={13}
@@ -100,7 +98,7 @@ const RadarChart: React.FC<RadarChartProps> = ({
         >
           {values[i]}
         </SvgText>
-      </>
+      </React.Fragment>
     );
   });
 

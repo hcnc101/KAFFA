@@ -13,6 +13,7 @@ import {
 import { Icon, AirbnbRating, Button } from "@rneui/themed";
 import { ReviewFormData } from "../types/review";
 import { addReview } from "../data/reviews";
+import RadarChart from "../components/RadarChart";
 
 // Milk types matching HomeScreen
 const milkTypes = [
@@ -334,6 +335,24 @@ const AddReviewScreen = () => {
               </View>
             </View>
           ))}
+
+          {/* Flavor Profile Visualization */}
+          <View style={styles.radarContainer}>
+            <Text style={styles.radarTitle}>Flavor Profile</Text>
+            <RadarChart
+              values={[
+                formData.flavour,
+                formData.aroma,
+                formData.body,
+                formData.acidity,
+                formData.strength,
+              ]}
+              labels={["Flavour", "Aroma", "Body", "Acidity", "Strength"]}
+              max={5}
+              size={200}
+              caption="Live preview of your coffee's flavor profile"
+            />
+          </View>
         </View>
 
         {/* Tasting Notes */}
@@ -549,6 +568,19 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 20,
+  },
+  radarContainer: {
+    alignItems: "center",
+    marginTop: 20,
+    paddingVertical: 15,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 12,
+  },
+  radarTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 10,
   },
 });
 

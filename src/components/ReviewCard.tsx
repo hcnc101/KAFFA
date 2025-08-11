@@ -2,6 +2,7 @@ import React from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text, Card, Icon, AirbnbRating } from "@rneui/themed";
 import { Review } from "../types/review";
+import RadarChart from "./RadarChart";
 
 interface ReviewCardProps {
   review: Review;
@@ -54,6 +55,30 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, onPress }) => {
           <Text style={styles.notesText}>{review.notes}</Text>
         </View>
       )}
+
+      {/* Flavor Profile Chart */}
+      {review.flavour &&
+        review.aroma &&
+        review.body &&
+        review.acidity &&
+        review.strength && (
+          <View style={styles.chartContainer}>
+            <Text style={styles.chartLabel}>Flavor Profile:</Text>
+            <RadarChart
+              values={[
+                review.flavour,
+                review.aroma,
+                review.body,
+                review.acidity,
+                review.strength,
+              ]}
+              labels={["Flavour", "Aroma", "Body", "Acidity", "Strength"]}
+              max={5}
+              size={180}
+              caption={`${review.milkType} • Overall: ${review.overall}/5`}
+            />
+          </View>
+        )}
 
       {review.tags && review.tags.length > 0 && (
         <View style={styles.tagsContainer}>
@@ -162,6 +187,19 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 12,
     color: "#666",
+  },
+  chartContainer: {
+    alignItems: "center",
+    marginVertical: 15,
+    paddingVertical: 10,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+  },
+  chartLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 5,
   },
 });
 
