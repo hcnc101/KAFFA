@@ -74,7 +74,7 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, onPress }) => {
               ]}
               labels={["Flavour", "Aroma", "Body", "Acidity", "Strength"]}
               max={5}
-              size={180}
+              size={300}
               caption={`${review.milkType} • Overall: ${review.overall}/5`}
             />
           </View>

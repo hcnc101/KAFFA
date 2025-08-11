@@ -353,7 +353,7 @@ const AddReviewScreen = () => {
               ]}
               labels={["Flavour", "Aroma", "Body", "Acidity", "Strength"]}
               max={5}
-              size={200}
+              size={320}
               caption="Live preview of your coffee's flavor profile"
             />
           </View>

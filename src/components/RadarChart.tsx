@@ -18,12 +18,12 @@ const RadarChart: React.FC<RadarChartProps> = ({
   caption = "Adjust the sliders to shape your coffee's profile",
 }) => {
   const numAxes = labels.length;
-  // Increase padding for labels to prevent cutoff
-  const padding = 40;
+  // Increase padding significantly for labels to prevent cutoff
+  const padding = 55;
   const svgSize = size + padding * 2;
   // Shift center to allow for left/top padding
   const center = svgSize / 2;
-  const radius = size * 0.32;
+  const radius = size * 0.28;
   const angleStep = (2 * Math.PI) / numAxes;
 
   // Calculate points for the polygon
@@ -70,18 +70,18 @@ const RadarChart: React.FC<RadarChartProps> = ({
     );
   });
 
-  // Axis labels with values (two lines)
-  const labelOffset = 35;
+  // Axis labels with values (two lines) - reduced spacing
+  const labelOffset = 25;
   const labelEls = labels.map((label, i) => {
     const angle = i * angleStep - Math.PI / 2;
-    const [x, y] = getPoint(max + 1.5, i, radius + labelOffset);
+    const [x, y] = getPoint(max + 1.2, i, radius + labelOffset);
 
-    // Better text anchor positioning based on angle
+    // More aggressive text anchor positioning based on angle
     let textAnchor: "start" | "middle" | "end" = "middle";
-    if (angle > Math.PI / 6 && angle < (Math.PI * 5) / 6) {
-      textAnchor = "start"; // Right side
-    } else if (angle > (Math.PI * 7) / 6 && angle < (Math.PI * 11) / 6) {
-      textAnchor = "end"; // Left side
+    if (angle > Math.PI / 4 && angle < (Math.PI * 3) / 4) {
+      textAnchor = "start"; // Right side - text flows right from anchor
+    } else if (angle > (Math.PI * 5) / 4 && angle < (Math.PI * 7) / 4) {
+      textAnchor = "end"; // Left side - text flows left from anchor
     }
 
     return (
