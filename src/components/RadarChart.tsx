@@ -18,12 +18,12 @@ const RadarChart: React.FC<RadarChartProps> = ({
   caption = "Adjust the sliders to shape your coffee's profile",
 }) => {
   const numAxes = labels.length;
-  // Add padding for labels
-  const padding = 24;
+  // Increase padding for labels to prevent cutoff
+  const padding = 40;
   const svgSize = size + padding * 2;
   // Shift center to allow for left/top padding
   const center = svgSize / 2;
-  const radius = size * 0.38;
+  const radius = size * 0.32;
   const angleStep = (2 * Math.PI) / numAxes;
 
   // Calculate points for the polygon
@@ -71,29 +71,39 @@ const RadarChart: React.FC<RadarChartProps> = ({
   });
 
   // Axis labels with values (two lines)
-  const labelOffset = 28;
+  const labelOffset = 35;
   const labelEls = labels.map((label, i) => {
-    const [x, y] = getPoint(max + 1.2, i, radius + labelOffset);
+    const angle = i * angleStep - Math.PI / 2;
+    const [x, y] = getPoint(max + 1.5, i, radius + labelOffset);
+
+    // Better text anchor positioning based on angle
+    let textAnchor: "start" | "middle" | "end" = "middle";
+    if (angle > Math.PI / 6 && angle < (Math.PI * 5) / 6) {
+      textAnchor = "start"; // Right side
+    } else if (angle > (Math.PI * 7) / 6 && angle < (Math.PI * 11) / 6) {
+      textAnchor = "end"; // Left side
+    }
+
     return (
       <React.Fragment key={`label-group-${i}`}>
         <SvgText
           x={x}
           y={y - 7}
-          fontSize={14}
+          fontSize={12}
           fill="#6F4E37"
           fontWeight="bold"
-          textAnchor="middle"
+          textAnchor={textAnchor}
           alignmentBaseline="middle"
         >
           {label}
         </SvgText>
         <SvgText
           x={x}
-          y={y + 10}
-          fontSize={13}
+          y={y + 8}
+          fontSize={11}
           fill="#6F4E37"
           fontWeight="600"
-          textAnchor="middle"
+          textAnchor={textAnchor}
           alignmentBaseline="middle"
         >
           {values[i]}
