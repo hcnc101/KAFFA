@@ -87,16 +87,17 @@ const AddReviewScreen = () => {
   };
 
   const validateForm = (): boolean => {
-    if (!formData.coffeeName.trim()) {
-      Alert.alert("Missing Information", "Please enter a coffee name");
-      return false;
-    }
-    if (!formData.roaster.trim()) {
-      Alert.alert("Missing Information", "Please enter a roaster");
-      return false;
-    }
-    if (!formData.origin.trim()) {
-      Alert.alert("Missing Information", "Please enter an origin");
+    // At least one of these fields must be filled
+    const hasBasicInfo =
+      formData.coffeeName.trim() ||
+      formData.roaster.trim() ||
+      formData.origin.trim();
+
+    if (!hasBasicInfo) {
+      Alert.alert(
+        "Missing Information",
+        "Please enter at least a coffee name, roaster, or origin"
+      );
       return false;
     }
     return true;
@@ -178,9 +179,12 @@ const AddReviewScreen = () => {
         {/* Basic Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Coffee Details</Text>
+          <Text style={styles.sectionSubtitle}>
+            Fill in what you know (at least one field required)
+          </Text>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Coffee Name *</Text>
+            <Text style={styles.inputLabel}>Coffee Name</Text>
             <TextInput
               style={styles.textInput}
               value={formData.coffeeName}
@@ -191,7 +195,7 @@ const AddReviewScreen = () => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Roaster *</Text>
+            <Text style={styles.inputLabel}>Roaster</Text>
             <View style={styles.autocompleteContainer}>
               <TextInput
                 style={styles.textInput}
@@ -229,7 +233,7 @@ const AddReviewScreen = () => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Origin *</Text>
+            <Text style={styles.inputLabel}>Origin</Text>
             <View style={styles.autocompleteContainer}>
               <TextInput
                 style={styles.textInput}
@@ -432,7 +436,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: "#333",
+    marginBottom: 8,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: "#666",
     marginBottom: 15,
+    fontStyle: "italic",
   },
   inputContainer: {
     marginBottom: 15,
