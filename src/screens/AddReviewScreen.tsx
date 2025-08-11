@@ -581,16 +581,26 @@ const styles = StyleSheet.create({
   },
   radarContainer: {
     alignItems: "center",
-    marginTop: 20,
-    paddingVertical: 15,
+    marginTop: 15,
+    paddingVertical: 20,
+    paddingHorizontal: 15,
     backgroundColor: "#f8f9fa",
-    borderRadius: 12,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   radarTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 10,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#6F4E37",
+    marginBottom: 5,
+    letterSpacing: 0.5,
   },
 });
 

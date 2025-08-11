@@ -118,19 +118,20 @@ const RadarChart: React.FC<RadarChartProps> = ({
         width={svgSize}
         height={svgSize}
         viewBox={`0 0 ${svgSize} ${svgSize}`}
+        style={styles.chart}
       >
         {/* Grid */}
         {gridPolygons}
         {/* Axes */}
         {axes}
-        {/* Data polygon (no drop shadow for mobile compatibility) */}
+        {/* Data polygon with enhanced styling */}
         <Polygon
           points={points}
-          fill="#6F4E37AA"
+          fill="#6F4E3755"
           stroke="#6F4E37"
-          strokeWidth={2}
+          strokeWidth={2.5}
         />
-        {/* Data points */}
+        {/* Enhanced data points */}
         {values.map((val, i) => {
           const [x, y] = getPoint(val, i);
           return (
@@ -138,15 +139,22 @@ const RadarChart: React.FC<RadarChartProps> = ({
               key={i}
               cx={x}
               cy={y}
-              r={5}
+              r={6}
               fill="#D4AF37"
               stroke="#6F4E37"
-              strokeWidth={1.5}
+              strokeWidth={2}
             />
           );
         })}
-        {/* Center dot */}
-        <Circle cx={center} cy={center} r={3} fill="#6F4E37" />
+        {/* Enhanced center dot */}
+        <Circle
+          cx={center}
+          cy={center}
+          r={4}
+          fill="#D4AF37"
+          stroke="#6F4E37"
+          strokeWidth={1.5}
+        />
         {/* Labels */}
         {labelEls}
       </Svg>
@@ -159,15 +167,19 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 8, // reduced vertical margin
+    marginVertical: 4, // tighter spacing
+  },
+  chart: {
+    marginBottom: -5, // pull chart closer to caption
   },
   caption: {
-    marginTop: 4,
+    marginTop: 0, // no gap between chart and caption
     color: "#6F4E37",
-    fontSize: 14,
-    fontStyle: "italic",
+    fontSize: 13,
+    fontWeight: "500",
     textAlign: "center",
-    opacity: 0.85,
+    opacity: 0.9,
+    letterSpacing: 0.3,
   },
 });
 

@@ -190,16 +190,26 @@ const styles = StyleSheet.create({
   },
   chartContainer: {
     alignItems: "center",
-    marginVertical: 15,
-    paddingVertical: 10,
+    marginVertical: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 10,
     backgroundColor: "#f8f9fa",
-    borderRadius: 8,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   chartLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 5,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#6F4E37",
+    marginBottom: 2,
+    letterSpacing: 0.3,
   },
 });
 
