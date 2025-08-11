@@ -69,7 +69,7 @@ const CoffeeBeanIcon = ({ size = 24, color = "#FFF" }) => (
   </Svg>
 );
 
-// Completely simplified BeanHeartButton - remove all the complex positioning
+// Transform-based centered BeanHeartButton
 const BeanHeartButton = () => (
   <View
     style={{
@@ -92,9 +92,13 @@ const BeanHeartButton = () => (
     <Image
       source={require("./assets/bean-heart-logo.png")}
       style={{
-        width: 26,
-        height: 26,
+        width: 30,
+        height: 30,
         tintColor: "white",
+        transform: [
+          { translateX: 2 }, // Move right by 2px
+          { translateY: 2 }, // Move down by 2px
+        ],
       }}
       resizeMode="contain"
     />
@@ -108,6 +112,7 @@ export default function App() {
       <ThemeProvider>
         <NavigationContainer>
           <Tab.Navigator
+            id={undefined}
             screenOptions={({ route }) => ({
               tabBarIcon: ({ focused, color, size }) => {
                 let iconName;
