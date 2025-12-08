@@ -1,6 +1,6 @@
 import React from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
-import { Text, Card, Icon, AirbnbRating } from "@rneui/themed";
+import { Text, Card, Icon } from "@rneui/themed";
 import { Review } from "../types/review";
 import RadarChart from "./RadarChart";
 
@@ -26,15 +26,8 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, onPress }) => {
           <Text style={styles.roaster}>{review.roaster}</Text>
         </View>
         <View style={styles.ratingContainer}>
-          <AirbnbRating
-            count={5}
-            defaultRating={review.rating}
-            size={16}
-            showRating={false}
-            selectedColor="#6F4E37"
-            isDisabled
-          />
-          <Text style={styles.ratingText}>{review.rating}/5</Text>
+          <Text style={styles.hoffmannScore}>{review.rating}</Text>
+          <Text style={styles.hoffmannScoreLabel}>/100</Text>
         </View>
       </View>
 
@@ -57,25 +50,36 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, onPress }) => {
       )}
 
       {/* Flavor Profile Chart */}
-      {review.flavour &&
-        review.aroma &&
-        review.body &&
-        review.acidity &&
-        review.strength && (
+      {review.flavour !== undefined &&
+        review.aroma !== undefined &&
+        review.aftertaste !== undefined &&
+        review.body !== undefined &&
+        review.acidity !== undefined &&
+        review.balance !== undefined && (
           <View style={styles.chartContainer}>
-            <Text style={styles.chartLabel}>Flavor Profile:</Text>
+            <Text style={styles.chartLabel}>SCA Flavor Profile:</Text>
             <RadarChart
               values={[
                 review.flavour,
                 review.aroma,
+                review.aftertaste,
                 review.body,
                 review.acidity,
-                review.strength,
+                review.balance,
               ]}
-              labels={["Flavour", "Aroma", "Body", "Acidity", "Strength"]}
-              max={5}
+              labels={[
+                "Flavor",
+                "Aroma",
+                "Aftertaste",
+                "Body",
+                "Acidity",
+                "Balance",
+              ]}
+              max={10}
               size={300}
-              caption={`${review.milkType} • Overall: ${review.overall}/5`}
+              caption={`${review.milkType} • Overall: ${
+                review.overall * 10
+              }/100`}
             />
           </View>
         )}
@@ -137,12 +141,17 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   ratingContainer: {
-    alignItems: "center",
+    alignItems: "flex-end",
   },
-  ratingText: {
-    fontSize: 12,
+  hoffmannScore: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#6F4E37",
+  },
+  hoffmannScoreLabel: {
+    fontSize: 14,
     color: "#86939e",
-    marginTop: 4,
+    marginTop: 2,
   },
   details: {
     flexDirection: "row",

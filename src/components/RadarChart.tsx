@@ -3,7 +3,7 @@ import { View, StyleSheet, Text as RNText } from "react-native";
 import Svg, { Polygon, Line, Text as SvgText, Circle } from "react-native-svg";
 
 interface RadarChartProps {
-  values: number[]; // e.g. [flavour, aroma, body, acidity, strength]
+  values: number[]; // e.g. [flavour, aroma, aftertaste, body, acidity, balance]
   labels: string[];
   max?: number; // default 10
   size?: number; // px, default 240 (slightly smaller for compactness)

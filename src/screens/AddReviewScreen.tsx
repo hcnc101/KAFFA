@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { Icon, AirbnbRating, Button } from "@rneui/themed";
+import { Icon, Button } from "@rneui/themed";
 import { ReviewFormData } from "../types/review";
 import { addReview } from "../data/reviews";
 import RadarChart from "../components/RadarChart";
@@ -58,13 +58,14 @@ const AddReviewScreen = () => {
     coffeeName: "",
     roaster: "",
     origin: "",
-    rating: 5, // legacy field
+    rating: 50, // 0-100 scale
     notes: "",
-    flavour: 5,
+    flavour: 5, // 0-10 scale (displayed as 0-100)
     aroma: 5,
+    aftertaste: 5,
     body: 5,
     acidity: 5,
-    strength: 5,
+    balance: 5, // replaces strength
     overall: 5,
     milkType: "None",
     keywords: [],
@@ -108,15 +109,17 @@ const AddReviewScreen = () => {
 
     setIsSubmitting(true);
     try {
-      // Calculate overall rating as average of individual metrics
+      // Calculate overall rating as average of individual metrics (0-10 scale, convert to 0-100)
       const overallRating = Math.round(
-        (formData.flavour +
+        ((formData.flavour +
           formData.aroma +
+          formData.aftertaste +
           formData.body +
           formData.acidity +
-          formData.strength +
+          formData.balance +
           formData.overall) /
-          6
+          7) *
+          10
       );
 
       const reviewData = {
@@ -144,13 +147,14 @@ const AddReviewScreen = () => {
       coffeeName: "",
       roaster: "",
       origin: "",
-      rating: 5,
+      rating: 50,
       notes: "",
       flavour: 5,
       aroma: 5,
+      aftertaste: 5,
       body: 5,
       acidity: 5,
-      strength: 5,
+      balance: 5,
       overall: 5,
       milkType: "None",
       keywords: [],
@@ -298,44 +302,113 @@ const AddReviewScreen = () => {
           </View>
         </View>
 
-        {/* Rating Metrics */}
+        {/* Rating Metrics - Hoffmann/SCA Style */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Rating Breakdown</Text>
+          <Text style={styles.sectionTitle}>SCA Cupping Score</Text>
+          <Text style={styles.sectionSubtitle}>
+            Rate each attribute on a 0-10 scale (displayed as 0-100)
+          </Text>
+          <View style={styles.scaInfoBox}>
+            <Icon name="info" size={16} color="#6F4E37" />
+            <Text style={styles.scaInfoText}>
+              Based on the Specialty Coffee Association (SCA) cupping protocol.
+              Coffees scoring 80+ are considered specialty grade.
+            </Text>
+          </View>
 
           {[
-            { key: "flavour", label: "Flavour", icon: "restaurant" },
-            { key: "aroma", label: "Aroma", icon: "local-florist" },
-            { key: "body", label: "Body", icon: "fitness-center" },
-            { key: "acidity", label: "Acidity", icon: "whatshot" },
-            { key: "strength", label: "Strength", icon: "flash-on" },
-            { key: "overall", label: "Overall", icon: "star" },
+            {
+              key: "flavour",
+              label: "Flavor",
+              icon: "restaurant",
+              description:
+                "The intensity and quality of the coffee's taste profile",
+            },
+            {
+              key: "aroma",
+              label: "Aroma",
+              icon: "local-florist",
+              description:
+                "The fragrance of the coffee, both dry and wet grounds",
+            },
+            {
+              key: "aftertaste",
+              label: "Aftertaste",
+              icon: "history",
+              description: "The lingering taste that remains after swallowing",
+            },
+            {
+              key: "acidity",
+              label: "Acidity",
+              icon: "whatshot",
+              description:
+                "The bright, tangy quality that gives coffee liveliness",
+            },
+            {
+              key: "body",
+              label: "Body",
+              icon: "fitness-center",
+              description: "The weight and texture of the coffee in your mouth",
+            },
+            {
+              key: "balance",
+              label: "Balance",
+              icon: "tune",
+              description: "How harmoniously all the flavors work together",
+            },
+            {
+              key: "overall",
+              label: "Overall",
+              icon: "star",
+              description:
+                "Your overall impression and enjoyment of this coffee",
+            },
           ].map((metric) => (
-            <View key={metric.key} style={styles.ratingRow}>
-              <View style={styles.ratingLabel}>
-                <Icon
-                  name={metric.icon}
-                  size={20}
-                  color="#6F4E37"
-                  style={styles.ratingIcon}
-                />
-                <Text style={styles.ratingLabelText}>{metric.label}</Text>
-              </View>
-              <View style={styles.ratingContainer}>
-                <AirbnbRating
-                  count={5}
-                  defaultRating={
-                    formData[metric.key as keyof ReviewFormData] as number
-                  }
-                  size={24}
-                  showRating={false}
-                  selectedColor="#6F4E37"
-                  onFinishRating={(rating) =>
-                    updateRating(metric.key as keyof ReviewFormData, rating)
-                  }
-                />
-                <Text style={styles.ratingValue}>
-                  {formData[metric.key as keyof ReviewFormData]}/5
+            <View key={metric.key} style={styles.hoffmannRatingRow}>
+              <View style={styles.hoffmannRatingHeader}>
+                <View style={styles.hoffmannRatingLabel}>
+                  <Icon
+                    name={metric.icon}
+                    size={20}
+                    color="#6F4E37"
+                    style={styles.ratingIcon}
+                  />
+                  <View style={styles.hoffmannLabelTextContainer}>
+                    <Text style={styles.hoffmannRatingLabelText}>
+                      {metric.label}
+                    </Text>
+                    <Text style={styles.hoffmannDescription}>
+                      {metric.description}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.hoffmannScore}>
+                  {(formData[metric.key as keyof ReviewFormData] as number) *
+                    10}
                 </Text>
+              </View>
+              <View style={styles.sliderContainer}>
+                <View style={styles.sliderTrack}>
+                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+                    <TouchableOpacity
+                      key={value}
+                      style={[
+                        styles.sliderTick,
+                        (formData[
+                          metric.key as keyof ReviewFormData
+                        ] as number) >= value && styles.sliderTickActive,
+                      ]}
+                      onPress={() =>
+                        updateRating(metric.key as keyof ReviewFormData, value)
+                      }
+                    />
+                  ))}
+                </View>
+                <View style={styles.sliderLabels}>
+                  <Text style={styles.sliderLabel}>0</Text>
+                  <Text style={styles.sliderLabel}>5</Text>
+                  <Text style={styles.sliderLabel}>10</Text>
+                </View>
               </View>
             </View>
           ))}
@@ -347,12 +420,20 @@ const AddReviewScreen = () => {
               values={[
                 formData.flavour,
                 formData.aroma,
+                formData.aftertaste,
                 formData.body,
                 formData.acidity,
-                formData.strength,
+                formData.balance,
               ]}
-              labels={["Flavour", "Aroma", "Body", "Acidity", "Strength"]}
-              max={5}
+              labels={[
+                "Flavor",
+                "Aroma",
+                "Aftertaste",
+                "Body",
+                "Acidity",
+                "Balance",
+              ]}
+              max={10}
               size={320}
               caption="Live preview of your coffee's flavor profile"
             />
@@ -601,6 +682,99 @@ const styles = StyleSheet.create({
     color: "#6F4E37",
     marginBottom: 5,
     letterSpacing: 0.5,
+  },
+  // Hoffmann-style rating components
+  hoffmannRatingRow: {
+    marginBottom: 24,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  hoffmannRatingHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  hoffmannRatingLabel: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    flex: 1,
+  },
+  hoffmannLabelTextContainer: {
+    flex: 1,
+    marginLeft: 8,
+  },
+  hoffmannRatingLabelText: {
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  hoffmannDescription: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+    lineHeight: 16,
+  },
+  hoffmannScore: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#6F4E37",
+    minWidth: 50,
+    textAlign: "right",
+  },
+  sliderContainer: {
+    marginTop: 8,
+  },
+  sliderTrack: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: 40,
+    paddingHorizontal: 4,
+  },
+  sliderTick: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#E0E0E0",
+    borderWidth: 2,
+    borderColor: "#BDBDBD",
+  },
+  sliderTickActive: {
+    backgroundColor: "#6F4E37",
+    borderColor: "#5A3E2A",
+  },
+  sliderLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 4,
+    marginTop: 4,
+  },
+  sliderLabel: {
+    fontSize: 11,
+    color: "#999",
+    fontWeight: "500",
+  },
+  scaInfoBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#F0F8FF",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: "#6F4E37",
+  },
+  scaInfoText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#666",
+    marginLeft: 8,
+    lineHeight: 16,
+    fontStyle: "italic",
   },
 });
 

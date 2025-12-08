@@ -7,7 +7,7 @@ export const reviews: Review[] = [
     coffeeName: "Ethiopian Yirgacheffe",
     roaster: "Stumptown Coffee",
     origin: "Ethiopia",
-    rating: 4.5,
+    rating: 85, // 0-100 scale
     notes:
       "Bright and floral with notes of jasmine and citrus. Light body with a clean finish.",
     date: new Date("2024-01-15"),
@@ -15,9 +15,10 @@ export const reviews: Review[] = [
     tags: ["floral", "citrus", "light-roast"],
     flavour: 9,
     aroma: 8,
+    aftertaste: 8,
     body: 6,
     acidity: 8,
-    strength: 5,
+    balance: 7,
     overall: 9,
     milkType: "None",
     keywords: ["floral", "citrus", "light"],
@@ -27,7 +28,7 @@ export const reviews: Review[] = [
     coffeeName: "Colombian Supremo",
     roaster: "Blue Bottle Coffee",
     origin: "Colombia",
-    rating: 4.2,
+    rating: 75, // 0-100 scale
     notes:
       "Medium body with chocolate notes and a hint of nuttiness. Smooth and balanced.",
     date: new Date("2024-01-10"),
@@ -35,9 +36,10 @@ export const reviews: Review[] = [
     tags: ["chocolate", "nuts", "medium-roast"],
     flavour: 7,
     aroma: 7,
+    aftertaste: 7,
     body: 8,
     acidity: 5,
-    strength: 6,
+    balance: 7,
     overall: 8,
     milkType: "Oat",
     keywords: ["chocolate", "nutty", "smooth"],
@@ -47,7 +49,7 @@ export const reviews: Review[] = [
     coffeeName: "Guatemala Antigua",
     roaster: "Intelligentsia Coffee",
     origin: "Guatemala",
-    rating: 4.8,
+    rating: 88, // 0-100 scale
     notes:
       "Rich and complex with notes of dark chocolate, caramel, and a subtle smokiness.",
     date: new Date("2024-01-05"),
@@ -55,9 +57,10 @@ export const reviews: Review[] = [
     tags: ["chocolate", "caramel", "dark-roast"],
     flavour: 8,
     aroma: 8,
+    aftertaste: 8,
     body: 9,
     acidity: 6,
-    strength: 7,
+    balance: 8,
     overall: 9,
     milkType: "Almond",
     keywords: ["chocolate", "caramel", "smoky"],
