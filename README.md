@@ -1,7 +1,5 @@
 # Kaffa - Smart Coffee Tracker & Review App
 
-#### Video Demo: <https://youtu.be/YOUR_VIDEO_ID_HERE>
-
 #### Description:
 
 Kaffa is a comprehensive React Native mobile application designed for coffee enthusiasts who want to optimize their caffeine intake and track their coffee experiences. The app combines science-based caffeine tracking with a beautiful coffee review system, helping users make informed decisions about when to drink coffee for maximum effectiveness while minimizing sleep disruption.
@@ -18,7 +16,7 @@ The centerpiece of the app is an interactive clock face that visualizes your caf
 
 - **Real-time Caffeine Display**: Shows current active caffeine in milligrams at the center of the clock
 - **Half-life Arcs**: Visual arcs on the clock show how each coffee's caffeine decays over time (caffeine has a ~5.5 hour half-life)
-- **Science Zones**: 
+- **Science Zones**:
   - **Cortisol Peak Zone (Teal)**: Highlights the 90-minute window after waking when natural cortisol is high—coffee is less effective during this period
   - **Sleep Impact Zone (Purple)**: Shows the 6-hour window before bedtime when caffeine may disrupt sleep
 - **12hr/24hr Toggle**: Switch between clock formats based on preference
@@ -91,6 +89,7 @@ Espressoo/
 ### Why React Native with Expo?
 
 I chose React Native with Expo for several reasons:
+
 1. **Cross-platform**: Write once, deploy to iOS and Android
 2. **Rapid Development**: Hot reloading and Expo's managed workflow accelerated development
 3. **Rich Ecosystem**: Access to native features through Expo modules
@@ -99,6 +98,7 @@ I chose React Native with Expo for several reasons:
 ### Why a Clock Visualization?
 
 The clock metaphor was intentional:
+
 - **Intuitive Time Mapping**: Users naturally understand clock positions as times of day
 - **Caffeine Decay Visualization**: Arcs showing caffeine half-life are more intuitive than numbers
 - **At-a-Glance Information**: Quick understanding of current caffeine status vs. looking at tables
@@ -106,6 +106,7 @@ The clock metaphor was intentional:
 ### Why Radar Charts for Reviews?
 
 I implemented custom SVG radar charts rather than using a library because:
+
 - **Unique Visualization**: Creates a "flavor fingerprint" that's immediately recognizable
 - **Live Updates**: The chart animates as users adjust ratings, providing instant feedback
 - **Educational**: Helps users understand how different coffees compare across dimensions
@@ -114,6 +115,7 @@ I implemented custom SVG radar charts rather than using a library because:
 ### Caffeine Science Implementation
 
 The app uses real caffeine science:
+
 - **5.5-hour half-life**: Standard caffeine metabolism rate
 - **45-minute absorption**: Base time for caffeine to reach peak levels
 - **Milk absorption delays**: Based on research showing fats/proteins slow absorption
@@ -122,6 +124,7 @@ The app uses real caffeine science:
 ### Form Validation Philosophy
 
 For the review form, I made a deliberate UX decision:
+
 - **Flexible Requirements**: Only one of Name/Roaster/Origin is required
 - **Rationale**: Users at a café might know the roaster but not the specific bean; someone gifted coffee might only know the origin
 - **User-Friendly**: Reduces friction while still ensuring meaningful data
@@ -139,6 +142,7 @@ For the review form, I made a deliberate UX decision:
 ## Installation & Running
 
 ### Prerequisites
+
 - Node.js v16 or higher
 - npm or yarn
 - Expo CLI (`npm install -g expo-cli`)
@@ -191,6 +195,7 @@ npm run android  # Android Emulator
 ## Future Improvements
 
 If I had more time, I would add:
+
 - User authentication and cloud sync
 - Photo capture for coffee/latte art
 - Social features (sharing reviews, following friends)
@@ -208,4 +213,3 @@ If I had more time, I would add:
 ---
 
 This project was created as the final project for Harvard's CS50 course.
-
