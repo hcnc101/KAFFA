@@ -1,7 +1,11 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { DeviceEventEmitter } from "react-native";
 import { Review, ReviewFormData } from "../types/review";
 
-// Sample reviews data
-export const reviews: Review[] = [
+const REVIEWS_STORAGE_KEY = "@espressoo:reviews";
+
+// Sample reviews data (fallback)
+const defaultReviews: Review[] = [
   {
     id: "1",
     coffeeName: "Ethiopian Yirgacheffe",
@@ -67,8 +71,51 @@ export const reviews: Review[] = [
   },
 ];
 
+// In-memory cache
+let reviews: Review[] = [...defaultReviews];
+
+// Load reviews from storage
+export const loadReviews = async (): Promise<Review[]> => {
+  try {
+    const stored = await AsyncStorage.getItem(REVIEWS_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Convert date strings back to Date objects
+      reviews = parsed.map((review: any) => ({
+        ...review,
+        date: new Date(review.date),
+      }));
+    } else {
+      // First time - save default reviews
+      await saveReviews(defaultReviews);
+      reviews = [...defaultReviews];
+    }
+    return reviews;
+  } catch (error) {
+    console.error("Error loading reviews:", error);
+    return defaultReviews;
+  }
+};
+
+// Save reviews to storage
+const saveReviews = async (reviewsToSave: Review[]): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(
+      REVIEWS_STORAGE_KEY,
+      JSON.stringify(reviewsToSave)
+    );
+  } catch (error) {
+    console.error("Error saving reviews:", error);
+  }
+};
+
+// Initialize reviews on module load
+loadReviews().catch(console.error);
+
 // Function to add a new review
-export const addReview = (reviewData: ReviewFormData): Review => {
+export const addReview = async (
+  reviewData: ReviewFormData
+): Promise<Review> => {
   const newReview: Review = {
     id: Date.now().toString(),
     ...reviewData,
@@ -78,6 +125,11 @@ export const addReview = (reviewData: ReviewFormData): Review => {
   };
 
   reviews.unshift(newReview); // Add to beginning of array
+  await saveReviews(reviews); // Persist to storage
+
+  // Emit event to notify other screens
+  DeviceEventEmitter.emit("reviewAdded", newReview);
+
   return newReview;
 };
 

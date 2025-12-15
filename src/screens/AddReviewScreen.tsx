@@ -11,20 +11,203 @@ import {
   Platform,
 } from "react-native";
 import { Icon, Button } from "@rneui/themed";
+import { useNavigation } from "@react-navigation/native";
+import { DeviceEventEmitter } from "react-native";
 import { ReviewFormData } from "../types/review";
 import { addReview } from "../data/reviews";
+import {
+  addCoffeeEntry as saveCoffeeEntry,
+  CoffeeEntry,
+} from "../data/coffeeEntries";
 import RadarChart from "../components/RadarChart";
 
-// Milk types matching HomeScreen
+// Coffee types matching HomeScreen
+const coffeeTypes = [
+  {
+    name: "Espresso",
+    volume: 30,
+    caffeine: 75,
+    icon: "local-cafe",
+    category: "black",
+  },
+  {
+    name: "Double Espresso",
+    volume: 60,
+    caffeine: 150,
+    icon: "local-cafe",
+    category: "black",
+  },
+  {
+    name: "Americano",
+    volume: 200,
+    caffeine: 150,
+    icon: "coffee",
+    category: "black",
+  },
+  {
+    name: "Long Black",
+    volume: 180,
+    caffeine: 140,
+    icon: "coffee",
+    category: "black",
+  },
+  {
+    name: "Filter Coffee",
+    volume: 250,
+    caffeine: 120,
+    icon: "coffee",
+    category: "black",
+  },
+  {
+    name: "Cappuccino",
+    volume: 180,
+    caffeine: 75,
+    icon: "local-cafe",
+    category: "milk",
+    defaultMilk: "semi-skimmed",
+  },
+  {
+    name: "Latte",
+    volume: 250,
+    caffeine: 75,
+    icon: "local-cafe",
+    category: "milk",
+    defaultMilk: "semi-skimmed",
+  },
+  {
+    name: "Flat White",
+    volume: 160,
+    caffeine: 130,
+    icon: "local-cafe",
+    category: "milk",
+    defaultMilk: "whole",
+  },
+  {
+    name: "Cortado",
+    volume: 120,
+    caffeine: 75,
+    icon: "local-cafe",
+    category: "milk",
+    defaultMilk: "whole",
+  },
+  {
+    name: "Macchiato",
+    volume: 60,
+    caffeine: 75,
+    icon: "local-cafe",
+    category: "milk",
+    defaultMilk: "semi-skimmed",
+  },
+  {
+    name: "Mocha",
+    volume: 250,
+    caffeine: 95,
+    icon: "local-cafe",
+    category: "milk",
+    defaultMilk: "whole",
+  },
+  {
+    name: "Cold Brew",
+    volume: 250,
+    caffeine: 200,
+    icon: "ac-unit",
+    category: "black",
+  },
+  {
+    name: "Iced Coffee",
+    volume: 250,
+    caffeine: 120,
+    icon: "ac-unit",
+    category: "black",
+  },
+  {
+    name: "Tea (English Breakfast)",
+    volume: 250,
+    caffeine: 50,
+    icon: "emoji-food-beverage",
+    category: "black",
+  },
+  {
+    name: "Earl Grey",
+    volume: 250,
+    caffeine: 45,
+    icon: "emoji-food-beverage",
+    category: "black",
+  },
+  {
+    name: "Green Tea",
+    volume: 250,
+    caffeine: 35,
+    icon: "emoji-food-beverage",
+    category: "black",
+  },
+  {
+    name: "Energy Drink",
+    volume: 250,
+    caffeine: 80,
+    icon: "battery-charging-full",
+    category: "black",
+  },
+];
+
+// Milk types matching HomeScreen (with caffeine absorption effects)
 const milkTypes = [
-  { name: "None", displayName: "No Milk" },
-  { name: "Skimmed", displayName: "Skimmed" },
-  { name: "Semi-Skimmed", displayName: "Semi-Skimmed" },
-  { name: "Whole Milk", displayName: "Whole Milk" },
-  { name: "Coconut Milk", displayName: "Coconut" },
-  { name: "Oat Milk", displayName: "Oat" },
-  { name: "Almond Milk", displayName: "Almond" },
-  { name: "Soy Milk", displayName: "Soy" },
+  {
+    name: "No Milk",
+    displayName: "No Milk",
+    absorptionDelay: 0,
+    caffeineReduction: 0,
+    peakDelay: 0,
+  },
+  {
+    name: "Skimmed",
+    displayName: "Skimmed",
+    absorptionDelay: 5,
+    caffeineReduction: 0.02,
+    peakDelay: 5,
+  },
+  {
+    name: "Semi-Skimmed",
+    displayName: "Semi-Skimmed",
+    absorptionDelay: 8,
+    caffeineReduction: 0.05,
+    peakDelay: 10,
+  },
+  {
+    name: "Whole Milk",
+    displayName: "Whole Milk",
+    absorptionDelay: 12,
+    caffeineReduction: 0.12,
+    peakDelay: 20,
+  },
+  {
+    name: "Coconut Milk",
+    displayName: "Coconut",
+    absorptionDelay: 10,
+    caffeineReduction: 0.08,
+    peakDelay: 15,
+  },
+  {
+    name: "Oat Milk",
+    displayName: "Oat",
+    absorptionDelay: 6,
+    caffeineReduction: 0.03,
+    peakDelay: 7,
+  },
+  {
+    name: "Almond Milk",
+    displayName: "Almond",
+    absorptionDelay: 3,
+    caffeineReduction: 0.01,
+    peakDelay: 3,
+  },
+  {
+    name: "Soy Milk",
+    displayName: "Soy",
+    absorptionDelay: 7,
+    caffeineReduction: 0.04,
+    peakDelay: 8,
+  },
 ];
 
 const popularOrigins = [
@@ -53,7 +236,13 @@ const popularRoasters = [
   "Other",
 ];
 
+// Helper function to get date key (YYYY-MM-DD)
+function getDateKey(date: Date): string {
+  return date.toISOString().split("T")[0];
+}
+
 const AddReviewScreen = () => {
+  const navigation = useNavigation();
   const [formData, setFormData] = useState<ReviewFormData>({
     coffeeName: "",
     roaster: "",
@@ -71,6 +260,7 @@ const AddReviewScreen = () => {
     keywords: [],
   });
 
+  const [selectedCoffeeType, setSelectedCoffeeType] = useState<any>(null);
   const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
   const [showRoasterSuggestions, setShowRoasterSuggestions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,9 +296,18 @@ const AddReviewScreen = () => {
 
   const submitReview = async () => {
     if (!validateForm()) return;
+    if (!selectedCoffeeType) {
+      Alert.alert(
+        "Coffee Type Required",
+        "Please select a coffee type to log."
+      );
+      return;
+    }
 
     setIsSubmitting(true);
     try {
+      const now = new Date();
+
       // Calculate overall rating as average of individual metrics (0-10 scale, convert to 0-100)
       const overallRating = Math.round(
         ((formData.flavour +
@@ -128,13 +327,38 @@ const AddReviewScreen = () => {
         overall: formData.overall,
       };
 
+      // Save the review
       await addReview(reviewData);
 
-      Alert.alert(
-        "Review Saved!",
-        "Your coffee review has been added successfully.",
-        [{ text: "OK", onPress: resetForm }]
-      );
+      // Also create a coffee entry for caffeine tracking
+      const selectedMilk =
+        milkTypes.find((m) => m.name === formData.milkType) || milkTypes[0];
+      const milkEffect = selectedMilk;
+      const effectiveCaffeine =
+        selectedCoffeeType.caffeine * (1 - milkEffect.caffeineReduction);
+      const absorptionTime = 45 + milkEffect.peakDelay;
+      const peakTime = new Date(now.getTime() + absorptionTime * 60000);
+      const halfLifeTime = new Date(now.getTime() + 5.5 * 60 * 60000);
+
+      const coffeeEntry: CoffeeEntry = {
+        id: Date.now().toString(),
+        type: selectedCoffeeType.name,
+        volume: selectedCoffeeType.volume,
+        caffeine: selectedCoffeeType.caffeine,
+        effectiveCaffeine: effectiveCaffeine,
+        timestamp: now,
+        peakTime,
+        halfLifeTime,
+        dateKey: getDateKey(now),
+        milkType: selectedMilk.name,
+      };
+
+      await saveCoffeeEntry(coffeeEntry);
+      DeviceEventEmitter.emit("coffeeEntryAdded", coffeeEntry);
+
+      // Reset form and stay on this screen
+      resetForm();
+      setSelectedCoffeeType(null);
     } catch (error) {
       Alert.alert("Error", "Failed to save review. Please try again.");
     } finally {
@@ -159,6 +383,7 @@ const AddReviewScreen = () => {
       milkType: "None",
       keywords: [],
     });
+    setSelectedCoffeeType(null);
   };
 
   return (
@@ -173,18 +398,86 @@ const AddReviewScreen = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Icon name="rate-review" size={40} color="#6F4E37" />
-          <Text style={styles.headerTitle}>Add Coffee Review</Text>
+          <Icon name="local-cafe" size={40} color="#6F4E37" />
+          <Text style={styles.headerTitle}>Log Coffee</Text>
           <Text style={styles.headerSubtitle}>
-            Share your coffee experience
+            Track caffeine & add a review
           </Text>
+        </View>
+
+        {/* Coffee Type Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Select Coffee Type</Text>
+          <Text style={styles.sectionSubtitle}>
+            Choose the type of coffee you're drinking (required for caffeine
+            tracking)
+          </Text>
+
+          <View style={styles.coffeeTypeGrid}>
+            {coffeeTypes.map((coffee) => (
+              <TouchableOpacity
+                key={coffee.name}
+                style={[
+                  styles.coffeeTypeOption,
+                  selectedCoffeeType?.name === coffee.name &&
+                    styles.selectedCoffeeTypeOption,
+                ]}
+                onPress={() => {
+                  setSelectedCoffeeType(coffee);
+                  // Auto-set milk type if coffee has a default
+                  if (coffee.defaultMilk) {
+                    const defaultMilk = milkTypes.find((m) =>
+                      m.name
+                        .toLowerCase()
+                        .includes(coffee.defaultMilk.toLowerCase())
+                    );
+                    if (defaultMilk) {
+                      setFormData((prev) => ({
+                        ...prev,
+                        milkType: defaultMilk.name,
+                      }));
+                    }
+                  }
+                }}
+              >
+                <Icon
+                  name={coffee.icon}
+                  type="material"
+                  color={
+                    selectedCoffeeType?.name === coffee.name
+                      ? "white"
+                      : "#6F4E37"
+                  }
+                  size={24}
+                />
+                <Text
+                  style={[
+                    styles.coffeeTypeText,
+                    selectedCoffeeType?.name === coffee.name &&
+                      styles.selectedCoffeeTypeText,
+                  ]}
+                >
+                  {coffee.name}
+                </Text>
+                <Text
+                  style={[
+                    styles.coffeeTypeCaffeine,
+                    selectedCoffeeType?.name === coffee.name &&
+                      styles.selectedCoffeeTypeCaffeine,
+                  ]}
+                >
+                  {coffee.caffeine}mg
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* Basic Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Coffee Details</Text>
           <Text style={styles.sectionSubtitle}>
-            Fill in what you know (at least one field required)
+            Fill in what you know (optional, but helps with reviews)
           </Text>
 
           <View style={styles.inputContainer}>
@@ -458,9 +751,9 @@ const AddReviewScreen = () => {
         {/* Submit Button */}
         <View style={styles.buttonContainer}>
           <Button
-            title={isSubmitting ? "Saving Review..." : "Save Review"}
+            title={isSubmitting ? "Logging Coffee..." : "Log Coffee"}
             onPress={submitReview}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !selectedCoffeeType}
             buttonStyle={styles.submitButton}
             titleStyle={styles.submitButtonText}
             loading={isSubmitting}
@@ -775,6 +1068,45 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     lineHeight: 16,
     fontStyle: "italic",
+  },
+  coffeeTypeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 10,
+  },
+  coffeeTypeOption: {
+    width: "30%",
+    minWidth: 100,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#FAFAFA",
+    borderWidth: 2,
+    borderColor: "#E0E0E0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectedCoffeeTypeOption: {
+    backgroundColor: "#6F4E37",
+    borderColor: "#5A3E2A",
+  },
+  coffeeTypeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#333",
+    marginTop: 6,
+    textAlign: "center",
+  },
+  selectedCoffeeTypeText: {
+    color: "white",
+  },
+  coffeeTypeCaffeine: {
+    fontSize: 10,
+    color: "#666",
+    marginTop: 2,
+  },
+  selectedCoffeeTypeCaffeine: {
+    color: "#FFE0B2",
   },
 });
 

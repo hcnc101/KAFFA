@@ -17,6 +17,11 @@ import {
 import { Text, Card, Button, Icon, Input, ListItem } from "@rneui/themed";
 import Svg, { Circle, Path, Text as SvgText, Line, G } from "react-native-svg";
 import { WidgetDataManager } from "../utils/WidgetDataManager";
+import {
+  addCoffeeEntry as saveCoffeeEntry,
+  loadCoffeeEntries,
+  getCoffeeEntriesSorted,
+} from "../data/coffeeEntries";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const CLOCK_SIZE = SCREEN_WIDTH * 0.8;
@@ -437,9 +442,24 @@ const HomeScreen = () => {
 
   useEffect(() => {
     checkForNewDay();
+    // Load coffee entries from storage
+    const loadStoredEntries = async () => {
+      await loadCoffeeEntries();
+      const allEntries = getCoffeeEntriesSorted();
+      const todayKey = getDateKey(new Date());
+      // Only show today's entries in HomeScreen
+      const todaysEntries = allEntries.filter(
+        (entry) => entry.dateKey === todayKey
+      );
+      setCoffeeEntries(todaysEntries);
+    };
+    loadStoredEntries();
   }, []);
 
-  const addCoffeeEntry = (coffeeType: any, milkType: any = milkTypes[0]) => {
+  const addCoffeeEntry = async (
+    coffeeType: any,
+    milkType: any = milkTypes[0]
+  ) => {
     const now = new Date();
 
     // Calculate caffeine absorption with milk effects
@@ -469,6 +489,16 @@ const HomeScreen = () => {
     setShowCoffeeModal(false);
     setShowClockView(true);
     setCurrentTime(new Date());
+
+    // Save to persistent storage
+    try {
+      await saveCoffeeEntry(entry);
+      console.log("HomeScreen: Coffee entry saved successfully");
+      // Emit event to notify other screens
+      DeviceEventEmitter.emit("coffeeEntryAdded", entry);
+    } catch (error) {
+      console.error("HomeScreen: Error saving coffee entry:", error);
+    }
 
     // Enhanced toast with milk info
     const milkInfo =
@@ -1623,14 +1653,6 @@ const HomeScreen = () => {
           )}
         </Card>
       </ScrollView>
-
-      {/* Floating Add Coffee Button */}
-      <TouchableOpacity
-        style={styles.floatingAddButton}
-        onPress={() => setShowCoffeeModal(true)}
-      >
-        <Icon name="add" size={28} color="white" />
-      </TouchableOpacity>
 
       {/* ENHANCED Coffee Selection Modal with PROPER SCROLLING */}
       <Modal

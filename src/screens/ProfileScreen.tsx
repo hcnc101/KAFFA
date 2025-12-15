@@ -8,8 +8,9 @@ import {
   RefreshControl,
 } from "react-native";
 import { Text, Avatar, Icon, Button, Image, Tab, TabView } from "@rneui/themed";
+import { useFocusEffect } from "@react-navigation/native";
 import ReviewsList from "../components/ReviewsList";
-import { getAllReviews } from "../data/reviews";
+import { getAllReviews, loadReviews } from "../data/reviews";
 import { Review } from "../types/review";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -79,11 +80,24 @@ const ProfileScreen = () => {
     // Add more posts as needed
   ];
 
+  // Load reviews when component mounts
   React.useEffect(() => {
+    refreshReviews();
+  }, []);
+
+  // Refresh reviews when this tab comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshReviews();
+    }, [])
+  );
+
+  const refreshReviews = async () => {
+    await loadReviews(); // Load from storage
     const allReviews = getAllReviews();
     setReviews(allReviews);
     setFilteredReviews(allReviews);
-  }, []);
+  };
 
   React.useEffect(() => {
     if (search.trim()) {
@@ -102,11 +116,10 @@ const ProfileScreen = () => {
     }
   }, [search, reviews]);
 
-  const onRefresh = React.useCallback(() => {
+  const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 2000);
+    await refreshReviews();
+    setRefreshing(false);
   }, []);
 
   const renderHeader = () => (

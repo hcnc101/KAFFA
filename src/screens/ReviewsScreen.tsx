@@ -6,6 +6,7 @@ import {
   getAllReviews,
   getReviewsByRoaster,
   getReviewsByOrigin,
+  loadReviews,
 } from "../data/reviews";
 import { Review } from "../types/review";
 
@@ -19,14 +20,15 @@ const ReviewsScreen = () => {
   >("all");
 
   useEffect(() => {
-    loadReviews();
+    refreshReviews();
   }, []);
 
   useEffect(() => {
     filterReviews();
   }, [search, reviews, activeFilter]);
 
-  const loadReviews = () => {
+  const refreshReviews = async () => {
+    await loadReviews(); // Load from storage
     const allReviews = getAllReviews();
     setReviews(allReviews);
     setFilteredReviews(allReviews);
@@ -51,7 +53,7 @@ const ReviewsScreen = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    loadReviews();
+    await refreshReviews();
     setRefreshing(false);
   };
 
