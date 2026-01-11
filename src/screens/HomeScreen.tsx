@@ -1301,7 +1301,11 @@ const HomeScreen = () => {
   return (
     <View style={styles.container}>
       <ScrollView>
-        {/* Header */}
+        {/* Minimal Header */}
+        <View style={styles.minimalHeader}>
+          <Text style={styles.minimalHeaderTitle}>Kaffa</Text>
+          <Text style={styles.minimalHeaderSubtitle}>Caffeine Tracker</Text>
+        </View>
         {/* Main Display - Clock View */}
         {renderCoffeeClock()}
 
@@ -1832,6 +1836,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
+  },
+  minimalHeader: {
+    paddingTop: 60,
+    paddingBottom: 10,
+    paddingHorizontal: 24,
+    backgroundColor: "#8B4513",
+  },
+  minimalHeaderTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    letterSpacing: 1,
+  },
+  minimalHeaderSubtitle: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.75)",
+    marginTop: 2,
   },
   scrollContent: {
     flex: 1,

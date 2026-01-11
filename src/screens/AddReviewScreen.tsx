@@ -655,7 +655,9 @@ const AddReviewScreen = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Icon name="local-cafe" size={40} color="#6F4E37" />
+          <View style={styles.headerIconContainer}>
+            <Icon name="local-cafe" size={28} color="#FFFFFF" />
+          </View>
           <Text style={styles.headerTitle}>Log Coffee</Text>
           <Text style={styles.headerSubtitle}>
             Track caffeine & add a review
@@ -1129,20 +1131,32 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    paddingVertical: 30,
+    paddingTop: 70,
+    paddingBottom: 24,
     paddingHorizontal: 20,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#8B4513",
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  headerIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#6F4E37",
-    marginTop: 10,
+    color: "#FFFFFF",
+    marginTop: 4,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: "#86939e",
-    marginTop: 5,
+    fontSize: 14,
+    color: "rgba(255,255,255,0.8)",
+    marginTop: 4,
   },
   section: {
     marginHorizontal: 20,

@@ -7,10 +7,9 @@ import {
   RefreshControl,
   DeviceEventEmitter,
 } from "react-native";
-import { Text, Icon, Tab, TabView } from "@rneui/themed";
+import { Text, Icon } from "@rneui/themed";
 import { useFocusEffect } from "@react-navigation/native";
 import {
-  getAllCoffeeEntries,
   getCoffeeEntriesSorted,
   loadCoffeeEntries,
   CoffeeEntry,
@@ -18,17 +17,21 @@ import {
 import { getAllReviews, loadReviews } from "../data/reviews";
 import { Review } from "../types/review";
 
+// Theme - matching the app's coffee aesthetic
 const theme = {
   primary: "#8B4513",
   secondary: "#C4A484",
-  background: "#FFFFFF",
-  surface: "#F5F5F5",
-  text: "#333333",
-  textLight: "#666666",
+  background: "#FAF8F5",
+  surface: "#FFFFFF",
+  accent: "#D4AF37",
+  text: "#2C1810",
+  textLight: "#6B5344",
+  caffeine: "#FF6B35",
+  cream: "#F5E6D3",
 };
 
 const ActivityScreen = () => {
-  const [index, setIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState<"log" | "reviews">("log");
   const [refreshing, setRefreshing] = useState(false);
   const [coffeeEntries, setCoffeeEntries] = useState<CoffeeEntry[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -36,18 +39,15 @@ const ActivityScreen = () => {
   const refreshCoffeeEntries = async () => {
     await loadCoffeeEntries();
     const entries = getCoffeeEntriesSorted();
-    console.log("ActivityScreen: Loaded", entries.length, "coffee entries");
     setCoffeeEntries(entries);
   };
 
   const refreshReviews = async () => {
     await loadReviews();
     const allReviews = getAllReviews();
-    // Sort by date, newest first
     const sortedReviews = [...allReviews].sort(
       (a, b) => b.date.getTime() - a.date.getTime()
     );
-    console.log("ActivityScreen: Loaded", sortedReviews.length, "reviews");
     setReviews(sortedReviews);
   };
 
@@ -56,30 +56,17 @@ const ActivityScreen = () => {
     await refreshReviews();
   };
 
-  // Load data when component mounts
   useEffect(() => {
     refreshAll();
 
-    // Listen for new coffee entries
     const coffeeSubscription = DeviceEventEmitter.addListener(
       "coffeeEntryAdded",
-      () => {
-        console.log(
-          "ActivityScreen: Received coffeeEntryAdded event, refreshing..."
-        );
-        refreshCoffeeEntries();
-      }
+      () => refreshCoffeeEntries()
     );
 
-    // Listen for new reviews
     const reviewSubscription = DeviceEventEmitter.addListener(
       "reviewAdded",
-      () => {
-        console.log(
-          "ActivityScreen: Received reviewAdded event, refreshing..."
-        );
-        refreshReviews();
-      }
+      () => refreshReviews()
     );
 
     return () => {
@@ -88,7 +75,6 @@ const ActivityScreen = () => {
     };
   }, []);
 
-  // Refresh when this tab comes into focus
   useFocusEffect(
     React.useCallback(() => {
       refreshAll();
@@ -117,165 +103,177 @@ const ActivityScreen = () => {
 
   const renderCoffeeEntry = (entry: CoffeeEntry) => {
     const timeStr = formatTime(entry.timestamp);
-    const dateStr = entry.timestamp.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-    const timeOnly = entry.timestamp.toLocaleTimeString("en-US", {
+    const timeOnly = entry.timestamp.toLocaleTimeString("en-GB", {
       hour: "2-digit",
       minute: "2-digit",
     });
 
     return (
-      <TouchableOpacity key={entry.id} style={styles.coffeeEntryItem}>
-        <View style={styles.coffeeEntryLeft}>
-          <View style={styles.coffeeIconContainer}>
-            <Icon name="local-cafe" color="#6F4E37" size={32} />
+      <View key={entry.id} style={styles.entryCard}>
+        <View style={styles.entryIconContainer}>
+          <Icon name="local-cafe" type="material" color={theme.surface} size={22} />
+        </View>
+        <View style={styles.entryContent}>
+          <View style={styles.entryHeader}>
+            <Text style={styles.entryTitle}>{entry.type}</Text>
+            {entry.milkType && entry.milkType !== "No Milk" && (
+              <View style={styles.milkBadge}>
+                <Text style={styles.milkBadgeText}>{entry.milkType}</Text>
+              </View>
+            )}
           </View>
-          <View style={styles.coffeeEntryContent}>
-            <View style={styles.coffeeEntryHeader}>
-              <Text style={styles.coffeeType}>{entry.type}</Text>
-              {entry.milkType && entry.milkType !== "No Milk" && (
-                <Text style={styles.milkType}> • {entry.milkType}</Text>
-              )}
-            </View>
-            <View style={styles.coffeeDetails}>
-              <Text style={styles.coffeeDetail}>
-                {entry.volume}mL • {entry.caffeine}mg caffeine
-              </Text>
-              {entry.effectiveCaffeine !== entry.caffeine && (
-                <Text style={styles.effectiveCaffeine}>
-                  ({Math.round(entry.effectiveCaffeine)}mg effective)
-                </Text>
-              )}
-            </View>
-            <View style={styles.coffeeTimeRow}>
-              <Text style={styles.coffeeDate}>{dateStr}</Text>
-              <Text style={styles.coffeeTime}>{timeOnly}</Text>
-              <Text style={styles.coffeeTimeAgo}> • {timeStr}</Text>
-            </View>
+          <View style={styles.entryMeta}>
+            <Text style={styles.entryMetaText}>{entry.volume}mL</Text>
+            <View style={styles.metaDot} />
+            <Text style={styles.entryMetaText}>{timeOnly}</Text>
+            <View style={styles.metaDot} />
+            <Text style={styles.entryMetaLight}>{timeStr}</Text>
           </View>
         </View>
-        <View style={styles.coffeeEntryRight}>
-          <Text style={styles.caffeineBadge}>
-            {Math.round(entry.effectiveCaffeine)}mg
-          </Text>
+        <View style={styles.caffeineBadge}>
+          <Icon name="flash-on" type="material" size={12} color={theme.caffeine} />
+          <Text style={styles.caffeineText}>{Math.round(entry.effectiveCaffeine)}mg</Text>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
   const renderReview = (review: Review) => {
     const timeStr = formatTime(review.date);
-    const dateStr = review.date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+
+    const getScoreColor = (rating: number) => {
+      if (rating >= 85) return "#2E7D32";
+      if (rating >= 70) return theme.primary;
+      if (rating >= 50) return "#FF8C00";
+      return "#C62828";
+    };
 
     return (
-      <TouchableOpacity key={review.id} style={styles.reviewItem}>
-        <View style={styles.reviewLeft}>
-          <View style={styles.reviewIconContainer}>
-            <Icon name="rate-review" color="#6F4E37" size={32} />
-          </View>
-          <View style={styles.reviewContent}>
-            <View style={styles.reviewHeader}>
-              <Text style={styles.reviewCoffeeName}>{review.coffeeName}</Text>
-              <Text style={styles.reviewScore}>{review.rating}/100</Text>
-            </View>
-            <Text style={styles.reviewRoaster}>
-              {review.roaster} • {review.origin}
-            </Text>
-            {review.notes && (
-              <Text style={styles.reviewNotes} numberOfLines={2}>
-                {review.notes}
-              </Text>
-            )}
-            <View style={styles.reviewTimeRow}>
-              <Text style={styles.reviewDate}>{dateStr}</Text>
-              <Text style={styles.reviewTimeAgo}> • {timeStr}</Text>
-            </View>
-          </View>
+      <View key={review.id} style={styles.entryCard}>
+        <View style={[styles.entryIconContainer, { backgroundColor: theme.accent }]}>
+          <Icon name="star" type="material" color={theme.surface} size={22} />
         </View>
-      </TouchableOpacity>
+        <View style={styles.entryContent}>
+          <View style={styles.entryHeader}>
+            <Text style={styles.entryTitle} numberOfLines={1}>{review.coffeeName}</Text>
+          </View>
+          <View style={styles.entryMeta}>
+            <Text style={styles.entryMetaText}>{review.roaster}</Text>
+            <View style={styles.metaDot} />
+            <Text style={styles.entryMetaLight}>{timeStr}</Text>
+          </View>
+          {review.notes && (
+            <Text style={styles.reviewNotes} numberOfLines={1}>{review.notes}</Text>
+          )}
+        </View>
+        <View style={[styles.scoreBadge, { backgroundColor: getScoreColor(review.rating) }]}>
+          <Text style={styles.scoreText}>{review.rating}</Text>
+        </View>
+      </View>
     );
   };
 
+  const EmptyState = ({ type }: { type: "log" | "reviews" }) => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconContainer}>
+        <Icon
+          name={type === "log" ? "coffee-outline" : "star-outline"}
+          type="material-community"
+          size={40}
+          color={theme.secondary}
+        />
+      </View>
+      <Text style={styles.emptyTitle}>
+        {type === "log" ? "No Coffee Logged" : "No Reviews Yet"}
+      </Text>
+      <Text style={styles.emptySubtitle}>
+        {type === "log"
+          ? "Your coffee journey starts here"
+          : "Rate your coffee experiences"}
+      </Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-      <Tab
-        value={index}
-        onChange={setIndex}
-        indicatorStyle={styles.tabIndicator}
-        variant="primary"
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Icon name="favorite" type="material" size={24} color={theme.surface} />
+          <Text style={styles.headerTitle}>Favorites</Text>
+        </View>
+      </View>
+
+      {/* Tab Switcher */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "log" && styles.tabActive]}
+          onPress={() => setActiveTab("log")}
+        >
+          <Icon 
+            name="local-cafe" 
+            type="material" 
+            size={18} 
+            color={activeTab === "log" ? theme.primary : theme.textLight} 
+          />
+          <Text style={[styles.tabText, activeTab === "log" && styles.tabTextActive]}>
+            Coffee Log
+          </Text>
+          <View style={[styles.tabCount, activeTab === "log" && styles.tabCountActive]}>
+            <Text style={[styles.tabCountText, activeTab === "log" && styles.tabCountTextActive]}>
+              {coffeeEntries.length}
+            </Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "reviews" && styles.tabActive]}
+          onPress={() => setActiveTab("reviews")}
+        >
+          <Icon 
+            name="star" 
+            type="material" 
+            size={18} 
+            color={activeTab === "reviews" ? theme.primary : theme.textLight} 
+          />
+          <Text style={[styles.tabText, activeTab === "reviews" && styles.tabTextActive]}>
+            Reviews
+          </Text>
+          <View style={[styles.tabCount, activeTab === "reviews" && styles.tabCountActive]}>
+            <Text style={[styles.tabCountText, activeTab === "reviews" && styles.tabCountTextActive]}>
+              {reviews.length}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Content */}
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor={theme.primary}
+          />
+        }
+        showsVerticalScrollIndicator={false}
       >
-        <Tab.Item
-          title="Coffee Log"
-          titleStyle={styles.tabTitle}
-          containerStyle={styles.tabContainer}
-        />
-        <Tab.Item
-          title="Reviews"
-          titleStyle={styles.tabTitle}
-          containerStyle={styles.tabContainer}
-        />
-      </Tab>
-
-      <TabView value={index} onChange={setIndex} animationType="spring">
-        <TabView.Item style={styles.tabViewItem}>
-          <ScrollView
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-          >
-            {coffeeEntries.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Icon
-                  name="coffee-outline"
-                  type="material-community"
-                  size={64}
-                  color="#d3d3d3"
-                  style={styles.emptyIcon}
-                />
-                <Text style={styles.emptyTitle}>No Coffee Logged Yet</Text>
-                <Text style={styles.emptySubtitle}>
-                  Start logging your coffees on the Home tab!
-                </Text>
-              </View>
-            ) : (
-              coffeeEntries.map(renderCoffeeEntry)
-            )}
-          </ScrollView>
-        </TabView.Item>
-
-        <TabView.Item style={styles.tabViewItem}>
-          <ScrollView
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-          >
-            {reviews.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Icon
-                  name="rate-review"
-                  type="material"
-                  size={64}
-                  color="#d3d3d3"
-                  style={styles.emptyIcon}
-                />
-                <Text style={styles.emptyTitle}>No Reviews Yet</Text>
-                <Text style={styles.emptySubtitle}>
-                  Start adding coffee reviews!
-                </Text>
-              </View>
-            ) : (
-              reviews.map(renderReview)
-            )}
-          </ScrollView>
-        </TabView.Item>
-      </TabView>
+        {activeTab === "log" ? (
+          coffeeEntries.length === 0 ? (
+            <EmptyState type="log" />
+          ) : (
+            coffeeEntries.map(renderCoffeeEntry)
+          )
+        ) : (
+          reviews.length === 0 ? (
+            <EmptyState type="reviews" />
+          ) : (
+            reviews.map(renderReview)
+          )
+        )}
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
     </View>
   );
 };
@@ -285,203 +283,208 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.background,
   },
-  tabContainer: {
-    backgroundColor: theme.background,
-  },
-  tabIndicator: {
+  header: {
     backgroundColor: theme.primary,
-    height: 3,
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
   },
-  tabTitle: {
-    color: theme.text,
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  tabViewItem: {
-    width: "100%",
-  },
-  // Coffee entry styles
-  coffeeEntryItem: {
+  headerContent: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-    backgroundColor: "#FAFAFA",
+    alignItems: "center",
   },
-  coffeeEntryLeft: {
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: theme.surface,
+    marginLeft: 10,
+    letterSpacing: 0.5,
+  },
+  tabContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  tab: {
     flex: 1,
     flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: theme.surface,
+    gap: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
-  coffeeIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#FFF8F0",
+  tabActive: {
+    backgroundColor: theme.cream,
+    borderWidth: 1.5,
+    borderColor: theme.primary,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.textLight,
+  },
+  tabTextActive: {
+    color: theme.primary,
+  },
+  tabCount: {
+    backgroundColor: theme.cream,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  tabCountActive: {
+    backgroundColor: theme.primary,
+  },
+  tabCountText: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: theme.textLight,
+  },
+  tabCountTextActive: {
+    color: theme.surface,
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+  },
+  entryCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.surface,
+    padding: 14,
+    borderRadius: 14,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  entryIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.primary,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
-    borderWidth: 2,
-    borderColor: "#6F4E37",
   },
-  coffeeEntryContent: {
+  entryContent: {
     flex: 1,
   },
-  coffeeEntryHeader: {
+  entryHeader: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 4,
+    gap: 8,
   },
-  coffeeType: {
+  entryTitle: {
     fontSize: 16,
     fontWeight: "bold",
     color: theme.text,
   },
-  milkType: {
-    fontSize: 14,
-    color: theme.textLight,
-    fontStyle: "italic",
+  milkBadge: {
+    backgroundColor: theme.cream,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
-  coffeeDetails: {
+  milkBadgeText: {
+    fontSize: 11,
+    color: theme.primary,
+    fontWeight: "500",
+  },
+  entryMeta: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 4,
+    alignItems: "center",
   },
-  coffeeDetail: {
+  entryMetaText: {
     fontSize: 13,
     color: theme.textLight,
-    marginRight: 8,
-  },
-  effectiveCaffeine: {
-    fontSize: 12,
-    color: "#FF6B35",
     fontWeight: "500",
   },
-  coffeeTimeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  coffeeDate: {
+  entryMetaLight: {
     fontSize: 12,
-    color: theme.textLight,
-    marginRight: 4,
+    color: theme.secondary,
   },
-  coffeeTime: {
-    fontSize: 12,
-    color: theme.textLight,
-    fontWeight: "500",
-  },
-  coffeeTimeAgo: {
-    fontSize: 11,
-    color: theme.textLight,
-    fontStyle: "italic",
-  },
-  coffeeEntryRight: {
-    alignItems: "flex-end",
-    justifyContent: "center",
-    marginLeft: 12,
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: theme.secondary,
+    marginHorizontal: 6,
   },
   caffeineBadge: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#FF6B35",
-    backgroundColor: "#FFF8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: `${theme.caffeine}15`,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#FF6B35",
+    borderRadius: 10,
+    gap: 4,
+  },
+  caffeineText: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: theme.caffeine,
+  },
+  reviewNotes: {
+    fontSize: 12,
+    color: theme.textLight,
+    marginTop: 4,
+    fontStyle: "italic",
+  },
+  scoreBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scoreText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: theme.surface,
   },
   emptyContainer: {
-    flex: 1,
     alignItems: "center",
-    justifyContent: "center",
     paddingVertical: 60,
     paddingHorizontal: 40,
   },
-  emptyIcon: {
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: theme.cream,
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: "bold",
     color: theme.text,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 14,
     color: theme.textLight,
     textAlign: "center",
   },
-  // Review styles
-  reviewItem: {
-    flexDirection: "row",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-    backgroundColor: "#FAFAFA",
-  },
-  reviewLeft: {
-    flex: 1,
-    flexDirection: "row",
-  },
-  reviewIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#FFF8F0",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: "#6F4E37",
-  },
-  reviewContent: {
-    flex: 1,
-  },
-  reviewHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  reviewCoffeeName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: theme.text,
-    flex: 1,
-  },
-  reviewScore: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#6F4E37",
-    marginLeft: 8,
-  },
-  reviewRoaster: {
-    fontSize: 13,
-    color: theme.textLight,
-    marginBottom: 4,
-  },
-  reviewNotes: {
-    fontSize: 13,
-    color: theme.text,
-    marginBottom: 4,
-    lineHeight: 18,
-  },
-  reviewTimeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  reviewDate: {
-    fontSize: 12,
-    color: theme.textLight,
-  },
-  reviewTimeAgo: {
-    fontSize: 11,
-    color: theme.textLight,
-    fontStyle: "italic",
+  bottomSpacing: {
+    height: 30,
   },
 });
 

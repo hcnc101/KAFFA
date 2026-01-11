@@ -154,7 +154,7 @@ export default function App() {
               name="Feed"
               component={HomeScreen}
               options={{
-                title: "Kaffa",
+                headerShown: false,
                 tabBarLabel: "Home",
               }}
             />
@@ -162,7 +162,7 @@ export default function App() {
               name="Discover"
               component={SearchScreen}
               options={{
-                title: "Discover",
+                headerShown: false,
                 tabBarLabel: "Search",
                 tabBarItemStyle: { opacity: 0.4 },
               }}
@@ -176,7 +176,7 @@ export default function App() {
               name="Camera"
               component={AddReviewScreen}
               options={{
-                title: "New Coffee",
+                headerShown: false,
                 tabBarLabel: "", // Empty label for center button
               }}
             />
@@ -184,7 +184,7 @@ export default function App() {
               name="Activity"
               component={ActivityScreen}
               options={{
-                title: "Activity",
+                headerShown: false,
                 tabBarLabel: "Favorites",
               }}
             />
@@ -192,7 +192,7 @@ export default function App() {
               name="Profile"
               component={ProfileScreen}
               options={{
-                title: "Profile & Reviews",
+                headerShown: false,
                 tabBarLabel: "Profile",
               }}
             />
