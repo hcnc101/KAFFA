@@ -25,7 +25,6 @@ import Svg, {
   LinearGradient,
   Stop,
 } from "react-native-svg";
-import { WidgetDataManager } from "../utils/WidgetDataManager";
 import {
   addCoffeeEntry as saveCoffeeEntry,
   loadCoffeeEntries,
@@ -266,7 +265,7 @@ const HomeScreen = () => {
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [lastInactiveTime, setLastInactiveTime] = useState<Date | null>(null);
   const [showWakeUpSettings, setShowWakeUpSettings] = useState(false);
-  const [show24Hour, setShow24Hour] = useState(false);
+  const [show24Hour] = useState(true); // Always use 24hr clock
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const fadeAnim = useState(new Animated.Value(0))[0];
@@ -543,14 +542,6 @@ const HomeScreen = () => {
 
     Vibration.vibrate(50);
     logActivity("significant_activity");
-
-    // Update widget data
-    WidgetDataManager.updateWidgetData({
-      coffeeEntries: [...coffeeEntries, entry],
-      currentCaffeine: getCurrentCaffeineLevel(),
-      wakeUpTime: wakeUpTime.toISOString(),
-      bedTime: bedTime.toISOString(),
-    });
   };
 
   // Smooth toast notification
@@ -775,19 +766,12 @@ const HomeScreen = () => {
                 : baseColors[index % baseColors.length];
 
               // Calculate gradient endpoints for smooth taper
-              // Gradient goes from START (when coffee was consumed) fading toward CURRENT (now)
-              // This shows the caffeine that's been metabolized
               const gradientId = `caffeine-gradient-${entry.id}`;
 
-              // Arc from coffee time to current time (what's been consumed/active)
               const startX =
                 centerX + radius * Math.cos((startAngle * Math.PI) / 180);
               const startY =
                 centerY + radius * Math.sin((startAngle * Math.PI) / 180);
-              const currentX =
-                centerX + radius * Math.cos((currentAngle * Math.PI) / 180);
-              const currentY =
-                centerY + radius * Math.sin((currentAngle * Math.PI) / 180);
               const endX =
                 centerX + radius * Math.cos((endAngle * Math.PI) / 180);
               const endY =
@@ -1334,118 +1318,12 @@ const HomeScreen = () => {
   const sleepInfo = getSleepImpactWindow();
   const todaysEntries = getTodaysCoffeeEntries();
 
-  // Add this useEffect to update widget data when caffeine levels change
-  useEffect(() => {
-    const updateWidgetData = () => {
-      WidgetDataManager.updateWidgetData({
-        coffeeEntries: getTodaysCoffeeEntries(),
-        currentCaffeine: getCurrentCaffeineLevel(),
-        wakeUpTime: wakeUpTime.toISOString(),
-        bedTime: bedTime.toISOString(),
-      });
-    };
-
-    // Update widget data every 5 minutes
-    const widgetTimer = setInterval(updateWidgetData, 5 * 60 * 1000);
-
-    // Also update when coffee entries change
-    updateWidgetData();
-
-    return () => clearInterval(widgetTimer);
-  }, [coffeeEntries, currentTime, wakeUpTime, bedTime]);
-
   return (
     <View style={styles.container}>
       <ScrollView>
         {/* Header */}
-        <View style={styles.headerRedesigned}>
-          {/* Clock type toggle - LEFT SIDE */}
-          <View style={styles.viewToggleRedesigned}>
-            <TouchableOpacity
-              onPress={() => setShowClockView(true)}
-              style={[
-                styles.toggleButtonRedesigned,
-                showClockView && styles.activeToggleRedesigned,
-              ]}
-            >
-              <Icon
-                name="schedule"
-                size={20}
-                color={showClockView ? "white" : theme.text}
-              />
-              <Text
-                style={[
-                  styles.toggleLabelText,
-                  showClockView && styles.activeToggleLabelText,
-                ]}
-              >
-                Clock
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setShowClockView(false)}
-              style={[
-                styles.toggleButtonRedesigned,
-                !showClockView && styles.activeToggleRedesigned,
-              ]}
-            >
-              <Icon
-                name="timeline"
-                size={20}
-                color={!showClockView ? "white" : theme.text}
-              />
-              <Text
-                style={[
-                  styles.toggleLabelText,
-                  !showClockView && styles.activeToggleLabelText,
-                ]}
-              >
-                Timeline
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* 12hr/24hr toggle - RIGHT SIDE */}
-          {showClockView && (
-            <View style={styles.hourToggleRedesigned}>
-              <TouchableOpacity
-                onPress={() => setShow24Hour(false)}
-                style={[
-                  styles.hourButtonRedesigned,
-                  !show24Hour && styles.activeHourButtonRedesigned,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.hourTextRedesigned,
-                    !show24Hour && styles.activeHourTextRedesigned,
-                  ]}
-                >
-                  12hr
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShow24Hour(true)}
-                style={[
-                  styles.hourButtonRedesigned,
-                  show24Hour && styles.activeHourButtonRedesigned,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.hourTextRedesigned,
-                    show24Hour && styles.activeHourTextRedesigned,
-                  ]}
-                >
-                  24hr
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-        {/* Main Display */}
-        {showClockView ? renderCoffeeClock() : renderTimelineView()}
+        {/* Main Display - Clock View */}
+        {renderCoffeeClock()}
 
         {/* MOVE ACTIVE CAFFEINE TRACKING TO BE FIRST CARD */}
         <View style={styles.improvedHalfLifeLegend}>
