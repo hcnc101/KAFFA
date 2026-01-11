@@ -9,9 +9,6 @@ import {
 import { Text, Icon, Card } from "@rneui/themed";
 import { useFocusEffect } from "@react-navigation/native";
 import Svg, { Circle, Path, G, Defs, LinearGradient, Stop } from "react-native-svg";
-import ReviewsList from "../components/ReviewsList";
-import { getAllReviews, loadReviews } from "../data/reviews";
-import { Review } from "../types/review";
 import { loadCoffeeEntries, getCoffeeEntriesSorted } from "../data/coffeeEntries";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -53,7 +50,6 @@ interface CoffeeStats {
 
 const ProfileScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>([]);
   const [coffeeEntries, setCoffeeEntries] = useState<CoffeeEntry[]>([]);
   const [stats, setStats] = useState<CoffeeStats>({
     totalCups: 0,
@@ -77,13 +73,8 @@ const ProfileScreen = () => {
   );
 
   const refreshData = async () => {
-    await loadReviews();
     await loadCoffeeEntries();
-    
-    const allReviews = getAllReviews();
     const allEntries = getCoffeeEntriesSorted();
-    
-    setReviews(allReviews);
     setCoffeeEntries(allEntries);
     calculateStats(allEntries);
   };
@@ -306,32 +297,6 @@ const ProfileScreen = () => {
     );
   };
 
-  const renderReviewsSection = () => (
-    <View style={styles.reviewsSection}>
-      <View style={styles.reviewsHeader}>
-        <Icon name="rate-review" type="material" size={24} color={theme.primary} />
-        <Text style={styles.reviewsTitle}>Your Reviews</Text>
-        <View style={styles.reviewsCount}>
-          <Text style={styles.reviewsCountText}>{reviews.length}</Text>
-        </View>
-      </View>
-      {reviews.length > 0 ? (
-        <ReviewsList
-          reviews={reviews}
-          onReviewPress={() => {}}
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-        />
-      ) : (
-        <View style={styles.emptyReviews}>
-          <Icon name="coffee-outline" type="material-community" size={48} color={theme.secondary} />
-          <Text style={styles.emptyReviewsText}>No reviews yet</Text>
-          <Text style={styles.emptyReviewsSubtext}>Rate your coffee experiences to see them here</Text>
-        </View>
-      )}
-    </View>
-  );
-
   return (
     <ScrollView 
       style={styles.container}
@@ -344,7 +309,6 @@ const ProfileScreen = () => {
       {renderQuickStats()}
       {renderFavoriteCard()}
       {renderDailyInsights()}
-      {renderReviewsSection()}
       <View style={styles.bottomSpacing} />
     </ScrollView>
   );
@@ -557,51 +521,6 @@ const styles = StyleSheet.create({
   },
   statusTextWarning: {
     color: "#FF8C00",
-  },
-  reviewsSection: {
-    marginTop: 24,
-    flex: 1,
-  },
-  reviewsHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
-  reviewsTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: theme.text,
-    marginLeft: 10,
-    flex: 1,
-  },
-  reviewsCount: {
-    backgroundColor: theme.primary,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  reviewsCountText: {
-    color: theme.surface,
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  emptyReviews: {
-    alignItems: "center",
-    paddingVertical: 40,
-    paddingHorizontal: 40,
-  },
-  emptyReviewsText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.text,
-    marginTop: 12,
-  },
-  emptyReviewsSubtext: {
-    fontSize: 14,
-    color: theme.textLight,
-    textAlign: "center",
-    marginTop: 4,
   },
   bottomSpacing: {
     height: 40,

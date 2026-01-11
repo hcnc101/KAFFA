@@ -16,6 +16,7 @@ import {
 } from "../data/coffeeEntries";
 import { getAllReviews, loadReviews } from "../data/reviews";
 import { Review } from "../types/review";
+import ReviewsList from "../components/ReviewsList";
 
 // Theme - matching the app's coffee aesthetic
 const theme = {
@@ -138,41 +139,6 @@ const ActivityScreen = () => {
     );
   };
 
-  const renderReview = (review: Review) => {
-    const timeStr = formatTime(review.date);
-
-    const getScoreColor = (rating: number) => {
-      if (rating >= 85) return "#2E7D32";
-      if (rating >= 70) return theme.primary;
-      if (rating >= 50) return "#FF8C00";
-      return "#C62828";
-    };
-
-    return (
-      <View key={review.id} style={styles.entryCard}>
-        <View style={[styles.entryIconContainer, { backgroundColor: theme.accent }]}>
-          <Icon name="star" type="material" color={theme.surface} size={22} />
-        </View>
-        <View style={styles.entryContent}>
-          <View style={styles.entryHeader}>
-            <Text style={styles.entryTitle} numberOfLines={1}>{review.coffeeName}</Text>
-          </View>
-          <View style={styles.entryMeta}>
-            <Text style={styles.entryMetaText}>{review.roaster}</Text>
-            <View style={styles.metaDot} />
-            <Text style={styles.entryMetaLight}>{timeStr}</Text>
-          </View>
-          {review.notes && (
-            <Text style={styles.reviewNotes} numberOfLines={1}>{review.notes}</Text>
-          )}
-        </View>
-        <View style={[styles.scoreBadge, { backgroundColor: getScoreColor(review.rating) }]}>
-          <Text style={styles.scoreText}>{review.rating}</Text>
-        </View>
-      </View>
-    );
-  };
-
   const EmptyState = ({ type }: { type: "log" | "reviews" }) => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconContainer}>
@@ -246,34 +212,37 @@ const ActivityScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Content */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh}
-            tintColor={theme.primary}
-          />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {activeTab === "log" ? (
-          coffeeEntries.length === 0 ? (
+      {/* Content - conditionally render either Coffee Log or Reviews */}
+      {activeTab === "log" ? (
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor={theme.primary}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          {coffeeEntries.length === 0 ? (
             <EmptyState type="log" />
           ) : (
             coffeeEntries.map(renderCoffeeEntry)
-          )
-        ) : (
-          reviews.length === 0 ? (
-            <EmptyState type="reviews" />
-          ) : (
-            reviews.map(renderReview)
-          )
-        )}
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
+          )}
+          <View style={styles.bottomSpacing} />
+        </ScrollView>
+      ) : (
+        <View style={styles.reviewsListContainer}>
+          <ReviewsList
+            reviews={reviews}
+            onReviewPress={() => {}}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+        </View>
+      )}
     </View>
   );
 };
@@ -440,24 +409,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.caffeine,
   },
-  reviewNotes: {
-    fontSize: 12,
-    color: theme.textLight,
-    marginTop: 4,
-    fontStyle: "italic",
-  },
-  scoreBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  scoreText: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: theme.surface,
-  },
   emptyContainer: {
     alignItems: "center",
     paddingVertical: 60,
@@ -485,6 +436,10 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 30,
+  },
+  reviewsListContainer: {
+    flex: 1,
+    backgroundColor: theme.background,
   },
 });
 
