@@ -15,7 +15,16 @@ import {
   Animated,
 } from "react-native";
 import { Text, Card, Button, Icon, Input, ListItem } from "@rneui/themed";
-import Svg, { Circle, Path, Text as SvgText, Line, G } from "react-native-svg";
+import Svg, {
+  Circle,
+  Path,
+  Text as SvgText,
+  Line,
+  G,
+  Defs,
+  LinearGradient,
+  Stop,
+} from "react-native-svg";
 import { WidgetDataManager } from "../utils/WidgetDataManager";
 import {
   addCoffeeEntry as saveCoffeeEntry,
@@ -765,57 +774,54 @@ const HomeScreen = () => {
                 ? conflictColors[index % conflictColors.length]
                 : baseColors[index % baseColors.length];
 
+              // Calculate gradient endpoints for smooth taper
+              // Gradient goes from START (when coffee was consumed) fading toward CURRENT (now)
+              // This shows the caffeine that's been metabolized
+              const gradientId = `caffeine-gradient-${entry.id}`;
+
+              // Arc from coffee time to current time (what's been consumed/active)
+              const startX =
+                centerX + radius * Math.cos((startAngle * Math.PI) / 180);
+              const startY =
+                centerY + radius * Math.sin((startAngle * Math.PI) / 180);
+              const currentX =
+                centerX + radius * Math.cos((currentAngle * Math.PI) / 180);
+              const currentY =
+                centerY + radius * Math.sin((currentAngle * Math.PI) / 180);
+              const endX =
+                centerX + radius * Math.cos((endAngle * Math.PI) / 180);
+              const endY =
+                centerY + radius * Math.sin((endAngle * Math.PI) / 180);
+
               return (
                 <G key={`coffee-halflife-${entry.id}`}>
-                  {/* Full decay path */}
+                  {/* Gradient definition for smooth taper */}
+                  <Defs>
+                    <LinearGradient
+                      id={gradientId}
+                      x1={startX}
+                      y1={startY}
+                      x2={endX}
+                      y2={endY}
+                      gradientUnits="userSpaceOnUse"
+                    >
+                      <Stop offset="0%" stopColor={color} stopOpacity="0.9" />
+                      <Stop offset="50%" stopColor={color} stopOpacity="0.5" />
+                      <Stop
+                        offset="100%"
+                        stopColor={color}
+                        stopOpacity="0.08"
+                      />
+                    </LinearGradient>
+                  </Defs>
+
+                  {/* Main arc: from coffee consumption time to projected end */}
                   <Path
                     d={createArcPath(startAngle, endAngle, radius)}
                     fill="none"
-                    stroke={color}
-                    strokeWidth="8"
-                    strokeOpacity="0.2"
+                    stroke={`url(#${gradientId})`}
+                    strokeWidth="10"
                     strokeLinecap="round"
-                  />
-
-                  {/* Active remaining caffeine - highlight if affects sleep */}
-                  <Path
-                    d={createArcPath(currentAngle, endAngle, radius)}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth="8"
-                    strokeOpacity={affectsSleep ? 0.9 : 0.7}
-                    strokeLinecap="round"
-                    strokeDasharray={affectsSleep ? "8,4" : "none"} // Dashed line for sleep conflict
-                  />
-
-                  {/* Current position dot */}
-                  <Circle
-                    cx={
-                      centerX +
-                      radius * Math.cos((currentAngle * Math.PI) / 180)
-                    }
-                    cy={
-                      centerY +
-                      radius * Math.sin((currentAngle * Math.PI) / 180)
-                    }
-                    r="6"
-                    fill={color}
-                    stroke="white"
-                    strokeWidth="2"
-                  />
-
-                  {/* Coffee start marker */}
-                  <Circle
-                    cx={
-                      centerX + radius * Math.cos((startAngle * Math.PI) / 180)
-                    }
-                    cy={
-                      centerY + radius * Math.sin((startAngle * Math.PI) / 180)
-                    }
-                    r="4"
-                    fill="white"
-                    stroke={color}
-                    strokeWidth="3"
                   />
                 </G>
               );
