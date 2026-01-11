@@ -1,281 +1,352 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   Dimensions,
   RefreshControl,
 } from "react-native";
-import { Text, Avatar, Icon, Button, Image, Tab, TabView } from "@rneui/themed";
+import { Text, Icon, Card } from "@rneui/themed";
 import { useFocusEffect } from "@react-navigation/native";
+import Svg, { Circle, Path, G, Defs, LinearGradient, Stop } from "react-native-svg";
 import ReviewsList from "../components/ReviewsList";
 import { getAllReviews, loadReviews } from "../data/reviews";
 import { Review } from "../types/review";
+import { loadCoffeeEntries, getCoffeeEntriesSorted } from "../data/coffeeEntries";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
+// Theme - matching HomeScreen's coffee aesthetic
 const theme = {
   primary: "#8B4513",
   secondary: "#C4A484",
-  background: "#FFFFFF",
-  surface: "#F5F5F5",
-  text: "#333333",
-  textLight: "#666666",
+  background: "#FAF8F5",
+  surface: "#FFFFFF",
+  accent: "#D4AF37",
+  text: "#2C1810",
+  textLight: "#6B5344",
+  caffeine: "#FF6B35",
+  espresso: "#3C2415",
+  cream: "#F5E6D3",
 };
 
-interface Post {
-  id: number;
-  image: string;
-  likes: number;
-  comments: number;
-  type: "photo" | "review";
+interface CoffeeEntry {
+  id: string;
+  type: string;
+  volume: number;
+  caffeine: number;
+  timestamp: Date;
+  effectiveCaffeine: number;
+  milkType?: string;
+}
+
+interface CoffeeStats {
+  totalCups: number;
+  totalCaffeine: number;
+  avgCaffeinePerDay: number;
+  favoriteCoffee: string;
+  favoriteCount: number;
+  daysTracked: number;
+  weeklyAvg: number;
+  currentStreak: number;
 }
 
 const ProfileScreen = () => {
-  const [index, setIndex] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [filteredReviews, setFilteredReviews] = useState<Review[]>([]);
-  const [search, setSearch] = useState("");
+  const [coffeeEntries, setCoffeeEntries] = useState<CoffeeEntry[]>([]);
+  const [stats, setStats] = useState<CoffeeStats>({
+    totalCups: 0,
+    totalCaffeine: 0,
+    avgCaffeinePerDay: 0,
+    favoriteCoffee: "-",
+    favoriteCount: 0,
+    daysTracked: 0,
+    weeklyAvg: 0,
+    currentStreak: 0,
+  });
 
-  const userProfile = {
-    name: "Coffee Enthusiast",
-    username: "@coffeelover",
-    avatar: "https://randomuser.me/api/portraits/women/1.jpg",
-    bio: "Exploring the world one cup at a time ☕️ | Coffee Reviewer | Barista",
-    location: "San Francisco, CA",
-    website: "coffee.blog",
-    stats: {
-      posts: 42,
-      followers: 1234,
-      following: 567,
-      reviews: 28,
-    },
-    badges: ["Certified Barista", "Top Reviewer", "Bean Expert"],
-  };
-
-  const posts: Post[] = [
-    {
-      id: 1,
-      image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085",
-      likes: 256,
-      comments: 24,
-      type: "photo",
-    },
-    {
-      id: 2,
-      image: "https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb",
-      likes: 198,
-      comments: 18,
-      type: "review",
-    },
-    {
-      id: 3,
-      image: "https://images.unsplash.com/photo-1587734361993-0275024cb0b4",
-      likes: 342,
-      comments: 32,
-      type: "photo",
-    },
-    // Add more posts as needed
-  ];
-
-  // Load reviews when component mounts
-  React.useEffect(() => {
-    refreshReviews();
+  useEffect(() => {
+    refreshData();
   }, []);
 
-  // Refresh reviews when this tab comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      refreshReviews();
+      refreshData();
     }, [])
   );
 
-  const refreshReviews = async () => {
-    await loadReviews(); // Load from storage
+  const refreshData = async () => {
+    await loadReviews();
+    await loadCoffeeEntries();
+    
     const allReviews = getAllReviews();
+    const allEntries = getCoffeeEntriesSorted();
+    
     setReviews(allReviews);
-    setFilteredReviews(allReviews);
+    setCoffeeEntries(allEntries);
+    calculateStats(allEntries);
   };
 
-  React.useEffect(() => {
-    if (search.trim()) {
-      const searchLower = search.toLowerCase();
-      setFilteredReviews(
-        reviews.filter(
-          (review) =>
-            review.coffeeName.toLowerCase().includes(searchLower) ||
-            review.roaster.toLowerCase().includes(searchLower) ||
-            review.origin.toLowerCase().includes(searchLower) ||
-            review.notes.toLowerCase().includes(searchLower)
-        )
-      );
-    } else {
-      setFilteredReviews(reviews);
+  const calculateStats = (entries: CoffeeEntry[]) => {
+    if (entries.length === 0) {
+      setStats({
+        totalCups: 0,
+        totalCaffeine: 0,
+        avgCaffeinePerDay: 0,
+        favoriteCoffee: "-",
+        favoriteCount: 0,
+        daysTracked: 0,
+        weeklyAvg: 0,
+        currentStreak: 0,
+      });
+      return;
     }
-  }, [search, reviews]);
+
+    // Total caffeine
+    const totalCaffeine = entries.reduce((sum, e) => sum + (e.effectiveCaffeine || e.caffeine), 0);
+
+    // Days tracked (unique days)
+    const uniqueDays = new Set(entries.map(e => {
+      const date = new Date(e.timestamp);
+      return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    }));
+    const daysTracked = uniqueDays.size;
+
+    // Favorite coffee
+    const coffeeCount: Record<string, number> = {};
+    entries.forEach(e => {
+      coffeeCount[e.type] = (coffeeCount[e.type] || 0) + 1;
+    });
+    const favoriteCoffee = Object.entries(coffeeCount).sort((a, b) => b[1] - a[1])[0];
+
+    // Weekly average (last 7 days)
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const weeklyEntries = entries.filter(e => new Date(e.timestamp) >= oneWeekAgo);
+    const weeklyAvg = weeklyEntries.length / 7;
+
+    // Current streak
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    for (let i = 0; i <= 365; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() - i);
+      const dateStr = `${checkDate.getFullYear()}-${checkDate.getMonth()}-${checkDate.getDate()}`;
+      
+      if (uniqueDays.has(dateStr)) {
+        streak++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+
+    setStats({
+      totalCups: entries.length,
+      totalCaffeine: Math.round(totalCaffeine),
+      avgCaffeinePerDay: daysTracked > 0 ? Math.round(totalCaffeine / daysTracked) : 0,
+      favoriteCoffee: favoriteCoffee ? favoriteCoffee[0] : "-",
+      favoriteCount: favoriteCoffee ? favoriteCoffee[1] : 0,
+      daysTracked,
+      weeklyAvg: Math.round(weeklyAvg * 10) / 10,
+      currentStreak: streak,
+    });
+  };
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    await refreshReviews();
+    await refreshData();
     setRefreshing(false);
   }, []);
 
-  const renderHeader = () => (
+  // Mini donut chart for caffeine consumption
+  const CaffeineDonut = ({ percentage }: { percentage: number }) => {
+    const size = 100;
+    const strokeWidth = 12;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+    return (
+      <Svg width={size} height={size}>
+        <Defs>
+          <LinearGradient id="donutGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor={theme.caffeine} />
+            <Stop offset="100%" stopColor={theme.primary} />
+          </LinearGradient>
+        </Defs>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={theme.cream}
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="url(#donutGradient)"
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+    );
+  };
+
+  const renderJourneyHeader = () => (
     <View style={styles.header}>
-      <View style={styles.headerTop}>
-        <View style={styles.profileInfo}>
-          <Avatar
-            size={80}
-            rounded
-            source={{ uri: userProfile.avatar }}
-            containerStyle={styles.avatar}
-          />
-          <View style={styles.stats}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{userProfile.stats.posts}</Text>
-              <Text style={styles.statLabel}>Posts</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>
-                {userProfile.stats.followers}
-              </Text>
-              <Text style={styles.statLabel}>Followers</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>
-                {userProfile.stats.following}
-              </Text>
-              <Text style={styles.statLabel}>Following</Text>
-            </View>
-          </View>
+      <View style={styles.headerContent}>
+        <View style={styles.headerIcon}>
+          <Icon name="coffee" type="material-community" size={40} color={theme.surface} />
         </View>
-      </View>
-
-      <View style={styles.profileDetails}>
-        <Text style={styles.name}>{userProfile.name}</Text>
-        <Text style={styles.username}>{userProfile.username}</Text>
-        <Text style={styles.bio}>{userProfile.bio}</Text>
-
-        <View style={styles.locationWebsite}>
-          <View style={styles.infoItem}>
-            <Icon
-              name="location-on"
-              type="material"
-              size={16}
-              color={theme.textLight}
-            />
-            <Text style={styles.infoText}>{userProfile.location}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Icon
-              name="link"
-              type="material"
-              size={16}
-              color={theme.textLight}
-            />
-            <Text style={styles.infoText}>{userProfile.website}</Text>
-          </View>
-        </View>
-
-        <View style={styles.badges}>
-          {userProfile.badges.map((badge, index) => (
-            <View key={index} style={styles.badge}>
-              <Text style={styles.badgeText}>{badge}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.buttons}>
-          <Button
-            title="Edit Profile"
-            buttonStyle={styles.editButton}
-            titleStyle={styles.editButtonText}
-            containerStyle={styles.buttonContainer}
-          />
-          <Button
-            title="Share Profile"
-            buttonStyle={styles.shareButton}
-            titleStyle={styles.shareButtonText}
-            containerStyle={styles.buttonContainer}
-            icon={{
-              name: "share",
-              type: "material",
-              size: 20,
-              color: theme.primary,
-            }}
-          />
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>Your Coffee Journey</Text>
+          <Text style={styles.headerSubtitle}>
+            {stats.daysTracked > 0 
+              ? `Tracking for ${stats.daysTracked} day${stats.daysTracked > 1 ? 's' : ''}`
+              : 'Start logging your coffee!'}
+          </Text>
         </View>
       </View>
     </View>
   );
 
-  const renderPost = (post: Post) => (
-    <TouchableOpacity
-      key={post.id}
-      style={styles.post}
-      onPress={() => {
-        /* Navigate to post detail */
-      }}
-    >
-      <Image
-        source={{ uri: post.image }}
-        style={styles.postImage}
-        PlaceholderContent={<Icon name="image" size={30} color="#ccc" />}
-      />
-      {post.type === "review" && (
-        <View style={styles.reviewBadge}>
-          <Icon name="rate-review" size={16} color="white" />
+  const renderQuickStats = () => (
+    <View style={styles.quickStatsContainer}>
+      <View style={styles.quickStatCard}>
+        <Icon name="local-cafe" type="material" size={24} color={theme.primary} />
+        <Text style={styles.quickStatNumber}>{stats.totalCups}</Text>
+        <Text style={styles.quickStatLabel}>Total Cups</Text>
+      </View>
+      <View style={styles.quickStatCard}>
+        <Icon name="flash-on" type="material" size={24} color={theme.caffeine} />
+        <Text style={styles.quickStatNumber}>{(stats.totalCaffeine / 1000).toFixed(1)}g</Text>
+        <Text style={styles.quickStatLabel}>Total Caffeine</Text>
+      </View>
+      <View style={styles.quickStatCard}>
+        <Icon name="whatshot" type="material" size={24} color={theme.accent} />
+        <Text style={styles.quickStatNumber}>{stats.currentStreak}</Text>
+        <Text style={styles.quickStatLabel}>Day Streak</Text>
+      </View>
+    </View>
+  );
+
+  const renderFavoriteCard = () => (
+    <Card containerStyle={styles.favoriteCard}>
+      <View style={styles.favoriteHeader}>
+        <Icon name="favorite" type="material" size={20} color={theme.primary} />
+        <Text style={styles.favoriteTitle}>Your Favorite</Text>
+      </View>
+      <View style={styles.favoriteContent}>
+        <View style={styles.favoriteCoffeeIcon}>
+          <Icon name="coffee" type="material-community" size={32} color={theme.surface} />
         </View>
-      )}
-      <View style={styles.postStats}>
-        <View style={styles.postStat}>
-          <Icon name="favorite" size={14} color="white" />
-          <Text style={styles.postStatText}>{post.likes}</Text>
-        </View>
-        <View style={styles.postStat}>
-          <Icon name="chat-bubble" size={14} color="white" />
-          <Text style={styles.postStatText}>{post.comments}</Text>
+        <View style={styles.favoriteInfo}>
+          <Text style={styles.favoriteCoffeeName}>{stats.favoriteCoffee}</Text>
+          <Text style={styles.favoriteCoffeeCount}>
+            {stats.favoriteCount > 0 
+              ? `Ordered ${stats.favoriteCount} time${stats.favoriteCount > 1 ? 's' : ''}`
+              : 'No coffee logged yet'}
+          </Text>
         </View>
       </View>
-    </TouchableOpacity>
+    </Card>
+  );
+
+  const renderDailyInsights = () => {
+    const dailyLimit = 400; // FDA recommended max
+    const percentage = Math.min((stats.avgCaffeinePerDay / dailyLimit) * 100, 100);
+    
+    return (
+      <Card containerStyle={styles.insightsCard}>
+        <Text style={styles.insightsTitle}>Daily Caffeine Insights</Text>
+        <View style={styles.insightsContent}>
+          <View style={styles.donutContainer}>
+            <CaffeineDonut percentage={percentage} />
+            <View style={styles.donutCenter}>
+              <Text style={styles.donutValue}>{stats.avgCaffeinePerDay}</Text>
+              <Text style={styles.donutUnit}>mg/day</Text>
+            </View>
+          </View>
+          <View style={styles.insightsInfo}>
+            <View style={styles.insightRow}>
+              <Text style={styles.insightLabel}>Daily Average</Text>
+              <Text style={styles.insightValue}>{stats.avgCaffeinePerDay}mg</Text>
+            </View>
+            <View style={styles.insightRow}>
+              <Text style={styles.insightLabel}>Recommended Max</Text>
+              <Text style={styles.insightValue}>400mg</Text>
+            </View>
+            <View style={styles.insightRow}>
+              <Text style={styles.insightLabel}>Weekly Avg Cups</Text>
+              <Text style={styles.insightValue}>{stats.weeklyAvg}</Text>
+            </View>
+            <View style={[styles.statusBadge, percentage > 80 ? styles.statusWarning : styles.statusGood]}>
+              <Icon 
+                name={percentage > 80 ? "warning" : "check-circle"} 
+                type="material" 
+                size={14} 
+                color={percentage > 80 ? "#FF8C00" : "#2E7D32"} 
+              />
+              <Text style={[styles.statusText, percentage > 80 ? styles.statusTextWarning : styles.statusTextGood]}>
+                {percentage > 80 ? "High caffeine intake" : "Healthy intake level"}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Card>
+    );
+  };
+
+  const renderReviewsSection = () => (
+    <View style={styles.reviewsSection}>
+      <View style={styles.reviewsHeader}>
+        <Icon name="rate-review" type="material" size={24} color={theme.primary} />
+        <Text style={styles.reviewsTitle}>Your Reviews</Text>
+        <View style={styles.reviewsCount}>
+          <Text style={styles.reviewsCountText}>{reviews.length}</Text>
+        </View>
+      </View>
+      {reviews.length > 0 ? (
+        <ReviewsList
+          reviews={reviews}
+          onReviewPress={() => {}}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
+      ) : (
+        <View style={styles.emptyReviews}>
+          <Icon name="coffee-outline" type="material-community" size={48} color={theme.secondary} />
+          <Text style={styles.emptyReviewsText}>No reviews yet</Text>
+          <Text style={styles.emptyReviewsSubtext}>Rate your coffee experiences to see them here</Text>
+        </View>
+      )}
+    </View>
   );
 
   return (
-    <View style={{ flex: 1 }}>
-      <Tab
-        value={index}
-        onChange={setIndex}
-        indicatorStyle={{ backgroundColor: theme.primary }}
-        variant="primary"
-      >
-        <Tab.Item title="Profile" icon={{ name: "person", type: "material" }} />
-        <Tab.Item title="Reviews" icon={{ name: "list", type: "material" }} />
-      </Tab>
-      <TabView value={index} onChange={setIndex} animationType="spring">
-        <TabView.Item style={{ width: "100%", flex: 1 }}>
-          <ScrollView
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-          >
-            {renderHeader()}
-            <View style={styles.postsGrid}>{posts.map(renderPost)}</View>
-          </ScrollView>
-        </TabView.Item>
-        <TabView.Item style={{ width: "100%", flex: 1 }}>
-          <View style={{ flex: 1, backgroundColor: "#fff" }}>
-            <ReviewsList
-              reviews={filteredReviews}
-              onReviewPress={() => {}}
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-            />
-          </View>
-        </TabView.Item>
-      </TabView>
-    </View>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      {renderJourneyHeader()}
+      {renderQuickStats()}
+      {renderFavoriteCard()}
+      {renderDailyInsights()}
+      {renderReviewsSection()}
+      <View style={styles.bottomSpacing} />
+    </ScrollView>
   );
 };
 
@@ -285,169 +356,255 @@ const styles = StyleSheet.create({
     backgroundColor: theme.background,
   },
   header: {
-    padding: 15,
+    backgroundColor: theme.primary,
+    paddingTop: 60,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  headerTop: {
-    marginBottom: 15,
-  },
-  profileInfo: {
+  headerContent: {
     flexDirection: "row",
     alignItems: "center",
   },
-  avatar: {
-    marginRight: 20,
+  headerIcon: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
   },
-  stats: {
+  headerText: {
     flex: 1,
-    flexDirection: "row",
-    justifyContent: "space-around",
   },
-  statItem: {
-    alignItems: "center",
-  },
-  statNumber: {
-    fontSize: 18,
+  headerTitle: {
+    fontSize: 26,
     fontWeight: "bold",
-    color: theme.text,
+    color: theme.surface,
+    letterSpacing: 0.5,
   },
-  statLabel: {
-    fontSize: 12,
-    color: theme.textLight,
+  headerSubtitle: {
+    fontSize: 15,
+    color: "rgba(255,255,255,0.8)",
     marginTop: 4,
   },
-  profileDetails: {
-    marginTop: 15,
+  quickStatsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    marginTop: -20,
   },
-  name: {
+  quickStatCard: {
+    backgroundColor: theme.surface,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    flex: 1,
+    marginHorizontal: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  quickStatNumber: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: theme.text,
+    marginTop: 8,
+  },
+  quickStatLabel: {
+    fontSize: 11,
+    color: theme.textLight,
+    marginTop: 4,
+    textAlign: "center",
+  },
+  favoriteCard: {
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: theme.surface,
+    borderWidth: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  favoriteHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  favoriteTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.textLight,
+    marginLeft: 8,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  favoriteContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  favoriteCoffeeIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
+  },
+  favoriteInfo: {
+    flex: 1,
+  },
+  favoriteCoffeeName: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: theme.text,
+  },
+  favoriteCoffeeCount: {
+    fontSize: 14,
+    color: theme.textLight,
+    marginTop: 2,
+  },
+  insightsCard: {
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 16,
+    backgroundColor: theme.surface,
+    borderWidth: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  insightsTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: theme.text,
+    marginBottom: 16,
+  },
+  insightsContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  donutContainer: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  donutCenter: {
+    position: "absolute",
+    alignItems: "center",
+  },
+  donutValue: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: theme.text,
+  },
+  donutUnit: {
+    fontSize: 10,
+    color: theme.textLight,
+  },
+  insightsInfo: {
+    flex: 1,
+    marginLeft: 20,
+  },
+  insightRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  insightLabel: {
+    fontSize: 13,
+    color: theme.textLight,
+  },
+  insightValue: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.text,
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    marginTop: 4,
+    alignSelf: "flex-start",
+  },
+  statusGood: {
+    backgroundColor: "rgba(46, 125, 50, 0.1)",
+  },
+  statusWarning: {
+    backgroundColor: "rgba(255, 140, 0, 0.1)",
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  statusTextGood: {
+    color: "#2E7D32",
+  },
+  statusTextWarning: {
+    color: "#FF8C00",
+  },
+  reviewsSection: {
+    marginTop: 24,
+    flex: 1,
+  },
+  reviewsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  reviewsTitle: {
     fontSize: 18,
     fontWeight: "bold",
     color: theme.text,
-  },
-  username: {
-    fontSize: 14,
-    color: theme.textLight,
-    marginBottom: 8,
-  },
-  bio: {
-    fontSize: 14,
-    color: theme.text,
-    marginBottom: 12,
-  },
-  locationWebsite: {
-    marginBottom: 12,
-  },
-  infoItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  infoText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: theme.textLight,
-  },
-  badges: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 15,
-  },
-  badge: {
-    backgroundColor: theme.primary + "20",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  badgeText: {
-    color: theme.primary,
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  buttons: {
-    flexDirection: "row",
-    marginTop: 15,
-  },
-  buttonContainer: {
+    marginLeft: 10,
     flex: 1,
-    marginHorizontal: 5,
   },
-  editButton: {
-    backgroundColor: theme.primary,
-    borderRadius: 8,
-    paddingVertical: 8,
-  },
-  editButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  shareButton: {
-    backgroundColor: theme.background,
-    borderRadius: 8,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: theme.primary,
-  },
-  shareButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.primary,
-    marginLeft: 8,
-  },
-  tabIndicator: {
-    backgroundColor: theme.primary,
-    height: 3,
-  },
-  tabTitle: {
-    color: theme.text,
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  tabViewItem: {
-    width: "100%",
-  },
-  postsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    padding: 1,
-  },
-  post: {
-    width: SCREEN_WIDTH / 3 - 2,
-    height: SCREEN_WIDTH / 3 - 2,
-    margin: 1,
-    position: "relative",
-  },
-  postImage: {
-    width: "100%",
-    height: "100%",
-  },
-  reviewBadge: {
-    position: "absolute",
-    top: 8,
-    right: 8,
+  reviewsCount: {
     backgroundColor: theme.primary,
     borderRadius: 12,
-    padding: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
-  postStats: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    justifyContent: "space-around",
-    padding: 8,
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  postStat: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  postStatText: {
-    color: "white",
-    marginLeft: 4,
+  reviewsCountText: {
+    color: theme.surface,
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "bold",
+  },
+  emptyReviews: {
+    alignItems: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 40,
+  },
+  emptyReviewsText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.text,
+    marginTop: 12,
+  },
+  emptyReviewsSubtext: {
+    fontSize: 14,
+    color: theme.textLight,
+    textAlign: "center",
+    marginTop: 4,
+  },
+  bottomSpacing: {
+    height: 40,
   },
 });
 

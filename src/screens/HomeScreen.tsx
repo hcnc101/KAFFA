@@ -258,7 +258,7 @@ const HomeScreen = () => {
   );
   const [coffeeEntries, setCoffeeEntries] = useState<CoffeeEntry[]>([]);
   const [showCoffeeModal, setShowCoffeeModal] = useState(false);
-  const [showClockView, setShowClockView] = useState(true);
+  // Clock view is always shown (timeline removed)
   const [currentDateKey, setCurrentDateKey] = useState(getDateKey(new Date()));
   const [lastAppState, setLastAppState] = useState(AppState.currentState);
   const [todaysWakeUpDetected, setTodaysWakeUpDetected] = useState(false);
@@ -516,7 +516,6 @@ const HomeScreen = () => {
     // STREAMLINED FEEDBACK
     setCoffeeEntries((prev) => [...prev, entry]);
     setShowCoffeeModal(false);
-    setShowClockView(true);
     setCurrentTime(new Date());
 
     // Save to persistent storage
@@ -1083,25 +1082,6 @@ const HomeScreen = () => {
       </View>
     );
   };
-
-  // Auto-scroll to current time when switching to timeline view (fix the auto-scroll)
-  useEffect(() => {
-    if (scrollViewRef.current && !showClockView) {
-      // Much better auto-scroll - center on current time immediately
-      const currentHour = currentTime.getHours();
-      // Each hour card is 120px wide + 10px margin = 130px
-      // Center the current hour by scrolling to show 2 hours before it
-      const scrollToX = Math.max(0, (currentHour - 1.5) * 130);
-
-      // Delay slightly to ensure component is mounted
-      setTimeout(() => {
-        scrollViewRef.current?.scrollTo({
-          x: scrollToX,
-          animated: true,
-        });
-      }, 100);
-    }
-  }, [showClockView, currentTime.getHours()]);
 
   const renderTimelineView = () => {
     const hours = Array.from({ length: 24 }, (_, i) => i);

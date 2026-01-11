@@ -164,6 +164,12 @@ export default function App() {
               options={{
                 title: "Discover",
                 tabBarLabel: "Search",
+                tabBarItemStyle: { opacity: 0.4 },
+              }}
+              listeners={{
+                tabPress: (e) => {
+                  e.preventDefault(); // Disable navigation
+                },
               }}
             />
             <Tab.Screen
