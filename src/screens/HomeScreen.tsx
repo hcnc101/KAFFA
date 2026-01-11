@@ -454,6 +454,27 @@ const HomeScreen = () => {
       setCoffeeEntries(todaysEntries);
     };
     loadStoredEntries();
+
+    // Listen for coffee entries added from other screens (e.g., AddReviewScreen)
+    const subscription = DeviceEventEmitter.addListener(
+      "coffeeEntryAdded",
+      (newEntry: CoffeeEntry) => {
+        const todayKey = getDateKey(new Date());
+        // Only add if it's today's entry and not already in the list
+        if (newEntry.dateKey === todayKey) {
+          setCoffeeEntries((prev) => {
+            // Avoid duplicates by checking ID
+            if (prev.some((entry) => entry.id === newEntry.id)) {
+              return prev;
+            }
+            return [...prev, newEntry];
+          });
+          setCurrentTime(new Date()); // Refresh the clock display
+        }
+      }
+    );
+
+    return () => subscription.remove();
   }, []);
 
   const addCoffeeEntry = async (
