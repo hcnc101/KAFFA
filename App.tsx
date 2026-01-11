@@ -69,6 +69,105 @@ const CoffeeBeanIcon = ({ size = 24, color = "#FFF" }) => (
   </Svg>
 );
 
+// Caffeine Clock Spiral Icon - matches the app's caffeine tracking feature
+const CaffeineClockIcon = ({ size = 24, color = "#8B4513", focused = false }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    {/* Outer spiral arc */}
+    <Path
+      d="M12 3C7.03 3 3 7.03 3 12"
+      stroke={color}
+      strokeWidth={focused ? 2.5 : 2}
+      strokeLinecap="round"
+      fill="none"
+    />
+    {/* Middle spiral arc */}
+    <Path
+      d="M12 6C8.69 6 6 8.69 6 12C6 15.31 8.69 18 12 18"
+      stroke={color}
+      strokeWidth={focused ? 2.5 : 2}
+      strokeLinecap="round"
+      fill="none"
+    />
+    {/* Inner spiral arc */}
+    <Path
+      d="M12 9C10.34 9 9 10.34 9 12C9 13.66 10.34 15 12 15C13.66 15 15 13.66 15 12"
+      stroke={color}
+      strokeWidth={focused ? 2.5 : 2}
+      strokeLinecap="round"
+      fill="none"
+    />
+    {/* Center dot */}
+    <Path
+      d="M12 11.5C12.28 11.5 12.5 11.72 12.5 12C12.5 12.28 12.28 12.5 12 12.5C11.72 12.5 11.5 12.28 11.5 12C11.5 11.72 11.72 11.5 12 11.5Z"
+      fill={color}
+    />
+  </Svg>
+);
+
+// Dashboard/Stats Icon - for the coffee journey stats screen
+const DashboardIcon = ({ size = 24, color = "#8B4513", focused = false }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    {/* Bar chart bars */}
+    <Path
+      d="M4 18V14"
+      stroke={color}
+      strokeWidth={focused ? 2.5 : 2}
+      strokeLinecap="round"
+    />
+    <Path
+      d="M9 18V9"
+      stroke={color}
+      strokeWidth={focused ? 2.5 : 2}
+      strokeLinecap="round"
+    />
+    <Path
+      d="M14 18V12"
+      stroke={color}
+      strokeWidth={focused ? 2.5 : 2}
+      strokeLinecap="round"
+    />
+    <Path
+      d="M19 18V6"
+      stroke={color}
+      strokeWidth={focused ? 2.5 : 2}
+      strokeLinecap="round"
+    />
+    {/* Base line */}
+    <Path
+      d="M2 20H22"
+      stroke={color}
+      strokeWidth={focused ? 2 : 1.5}
+      strokeLinecap="round"
+    />
+  </Svg>
+);
+
+// Diary/Journal Icon - for activity screen with coffee logs & reviews
+const DiaryIcon = ({ size = 24, color = "#8B4513", focused = false }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    {/* Book spine */}
+    <Path
+      d="M4 4C4 3 5 2 6 2H18C19 2 20 3 20 4V20C20 21 19 22 18 22H6C5 22 4 21 4 20V4Z"
+      stroke={color}
+      strokeWidth={focused ? 2 : 1.5}
+      fill="none"
+    />
+    {/* Book binding line */}
+    <Path
+      d="M7 2V22"
+      stroke={color}
+      strokeWidth={focused ? 2 : 1.5}
+    />
+    {/* Bookmark ribbon */}
+    <Path
+      d="M14 2V8L16 6.5L18 8V2"
+      stroke={color}
+      strokeWidth={focused ? 1.5 : 1}
+      fill={focused ? color : "none"}
+    />
+  </Svg>
+);
+
 // Transform-based centered BeanHeartButton
 const BeanHeartButton = () => (
   <View
@@ -115,21 +214,24 @@ export default function App() {
             id={undefined}
             screenOptions={({ route }) => ({
               tabBarIcon: ({ focused, color, size }) => {
-                let iconName;
-
+                // Custom icons for each tab
                 if (route.name === "Feed") {
-                  iconName = focused ? "home" : "home-outline";
+                  // Caffeine clock spiral icon
+                  return <CaffeineClockIcon size={size} color={color} focused={focused} />;
                 } else if (route.name === "Discover") {
-                  iconName = focused ? "search" : "search-outline";
+                  const iconName = focused ? "search" : "search-outline";
+                  return <Ionicons name={iconName} size={size} color={color} />;
                 } else if (route.name === "Camera") {
                   return <BeanHeartButton />;
                 } else if (route.name === "Activity") {
-                  iconName = focused ? "heart" : "heart-outline";
+                  // Diary/journal icon for coffee logs & reviews
+                  return <DiaryIcon size={size} color={color} focused={focused} />;
                 } else if (route.name === "Profile") {
-                  iconName = focused ? "person" : "person-outline";
+                  // Dashboard/stats icon for coffee journey
+                  return <DashboardIcon size={size} color={color} focused={focused} />;
                 }
 
-                return <Ionicons name={iconName} size={size} color={color} />;
+                return null;
               },
               tabBarActiveTintColor: theme.primary,
               tabBarInactiveTintColor: theme.textLight,
@@ -155,7 +257,7 @@ export default function App() {
               component={HomeScreen}
               options={{
                 headerShown: false,
-                tabBarLabel: "Home",
+                tabBarLabel: "Clock",
               }}
             />
             <Tab.Screen
@@ -185,7 +287,7 @@ export default function App() {
               component={ActivityScreen}
               options={{
                 headerShown: false,
-                tabBarLabel: "Favorites",
+                tabBarLabel: "Log",
               }}
             />
             <Tab.Screen
@@ -193,7 +295,7 @@ export default function App() {
               component={ProfileScreen}
               options={{
                 headerShown: false,
-                tabBarLabel: "Profile",
+                tabBarLabel: "Journey",
               }}
             />
           </Tab.Navigator>
