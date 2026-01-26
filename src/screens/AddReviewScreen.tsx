@@ -180,28 +180,28 @@ const coffeeTypes = [
     volume: 250,
     caffeine: 50,
     icon: "emoji-food-beverage",
-    category: "black",
+    category: "quick",
   },
   {
     name: "Earl Grey",
     volume: 250,
     caffeine: 45,
     icon: "emoji-food-beverage",
-    category: "black",
+    category: "quick",
   },
   {
     name: "Green Tea",
     volume: 250,
     caffeine: 35,
     icon: "emoji-food-beverage",
-    category: "black",
+    category: "quick",
   },
   {
     name: "Energy Drink",
     volume: 250,
     caffeine: 80,
     icon: "battery-charging-full",
-    category: "black",
+    category: "quick",
   },
 ];
 
@@ -403,6 +403,49 @@ const AddReviewScreen = () => {
 
   // Prevents double-submission while async operations complete
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  /**
+   * QUICK LOG FUNCTION
+   * ------------------
+   * For non-coffee items (tea, energy drinks) that don't need full review form
+   * Just logs the caffeine entry and shows a success message
+   */
+  const quickLogCaffeine = async (item: any) => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const now = new Date();
+
+      // No milk effects for quick items
+      const coffeeEntry: CoffeeEntry = {
+        id: Date.now().toString(),
+        type: item.name,
+        volume: item.volume,
+        caffeine: item.caffeine,
+        effectiveCaffeine: item.caffeine, // No milk reduction
+        timestamp: now,
+        peakTime: new Date(now.getTime() + 45 * 60000), // 45 min standard
+        halfLifeTime: new Date(now.getTime() + 5.5 * 60 * 60000),
+        dateKey: getDateKey(now),
+        milkType: "No Milk",
+      };
+
+      await saveCoffeeEntry(coffeeEntry);
+      DeviceEventEmitter.emit("coffeeEntryAdded", coffeeEntry);
+
+      // Show success feedback
+      Alert.alert(
+        "✓ Logged!",
+        `${item.name} (${item.caffeine}mg caffeine) added to your tracker.`,
+        [{ text: "OK", style: "default" }]
+      );
+    } catch (error) {
+      Alert.alert("Error", "Failed to log. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   /**
    * STATE UPDATE FUNCTIONS
@@ -679,64 +722,99 @@ const AddReviewScreen = () => {
             tracking)
           </Text>
 
+          {/* Coffee items (require full form) */}
+          <Text style={styles.subsectionLabel}>Coffee</Text>
           <View style={styles.coffeeTypeGrid}>
-            {/* MAP: Iterate through coffeeTypes array, render a card for each */}
-            {coffeeTypes.map((coffee) => (
-              <TouchableOpacity
-                key={coffee.name}
-                style={[
-                  styles.coffeeTypeOption,
-                  selectedCoffeeType?.name === coffee.name &&
-                    styles.selectedCoffeeTypeOption,
-                ]}
-                onPress={() => {
-                  setSelectedCoffeeType(coffee);
-                  // Auto-set milk type if coffee has a default
-                  if (coffee.defaultMilk) {
-                    const defaultMilk = milkTypes.find((m) =>
-                      m.name
-                        .toLowerCase()
-                        .includes(coffee.defaultMilk.toLowerCase())
-                    );
-                    if (defaultMilk) {
-                      setFormData((prev) => ({
-                        ...prev,
-                        milkType: defaultMilk.name,
-                      }));
+            {coffeeTypes
+              .filter((coffee) => coffee.category !== "quick")
+              .map((coffee) => (
+                <TouchableOpacity
+                  key={coffee.name}
+                  style={[
+                    styles.coffeeTypeOption,
+                    selectedCoffeeType?.name === coffee.name &&
+                      styles.selectedCoffeeTypeOption,
+                  ]}
+                  onPress={() => {
+                    setSelectedCoffeeType(coffee);
+                    // Auto-set milk type if coffee has a default
+                    if (coffee.defaultMilk) {
+                      const defaultMilk = milkTypes.find((m) =>
+                        m.name
+                          .toLowerCase()
+                          .includes(coffee.defaultMilk.toLowerCase())
+                      );
+                      if (defaultMilk) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          milkType: defaultMilk.name,
+                        }));
+                      }
                     }
-                  }
-                }}
-              >
-                <Icon
-                  name={coffee.icon}
-                  type="material"
-                  color={
-                    selectedCoffeeType?.name === coffee.name
-                      ? "white"
-                      : "#6F4E37"
-                  }
-                  size={24}
-                />
-                <Text
-                  style={[
-                    styles.coffeeTypeText,
-                    selectedCoffeeType?.name === coffee.name &&
-                      styles.selectedCoffeeTypeText,
-                  ]}
+                  }}
                 >
-                  {coffee.name}
-                </Text>
-                <Text
-                  style={[
-                    styles.coffeeTypeCaffeine,
-                    selectedCoffeeType?.name === coffee.name &&
-                      styles.selectedCoffeeTypeCaffeine,
-                  ]}
+                  <Icon
+                    name={coffee.icon}
+                    type="material"
+                    color={
+                      selectedCoffeeType?.name === coffee.name
+                        ? "white"
+                        : "#6F4E37"
+                    }
+                    size={24}
+                  />
+                  <Text
+                    style={[
+                      styles.coffeeTypeText,
+                      selectedCoffeeType?.name === coffee.name &&
+                        styles.selectedCoffeeTypeText,
+                    ]}
+                  >
+                    {coffee.name}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.coffeeTypeCaffeine,
+                      selectedCoffeeType?.name === coffee.name &&
+                        styles.selectedCoffeeTypeCaffeine,
+                    ]}
+                  >
+                    {coffee.caffeine}mg
+                  </Text>
+                </TouchableOpacity>
+              ))}
+          </View>
+
+          {/* Quick log items (tea, energy drinks - no review form needed) */}
+          <Text style={styles.subsectionLabel}>Quick Log (Tea & Energy)</Text>
+          <Text style={styles.quickLogHint}>
+            Tap to log instantly - no form needed
+          </Text>
+          <View style={styles.coffeeTypeGrid}>
+            {coffeeTypes
+              .filter((coffee) => coffee.category === "quick")
+              .map((item) => (
+                <TouchableOpacity
+                  key={item.name}
+                  style={[styles.coffeeTypeOption, styles.quickLogOption]}
+                  onPress={() => quickLogCaffeine(item)}
+                  disabled={isSubmitting}
                 >
-                  {coffee.caffeine}mg
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Icon
+                    name={item.icon}
+                    type="material"
+                    color="#6F4E37"
+                    size={24}
+                  />
+                  <Text style={styles.coffeeTypeText}>{item.name}</Text>
+                  <Text style={styles.coffeeTypeCaffeine}>
+                    {item.caffeine}mg
+                  </Text>
+                  <View style={styles.quickBadge}>
+                    <Text style={styles.quickBadgeText}>TAP TO LOG</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
           </View>
         </View>
 
@@ -1492,6 +1570,39 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#666",
     marginTop: 2,
+  },
+  subsectionLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#8B4513",
+    marginTop: 16,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  quickLogHint: {
+    fontSize: 12,
+    color: "#999",
+    marginBottom: 10,
+    fontStyle: "italic",
+  },
+  quickLogOption: {
+    borderColor: "#C4A484",
+    borderStyle: "dashed",
+    backgroundColor: "#FFF8F0",
+  },
+  quickBadge: {
+    backgroundColor: "#8B4513",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginTop: 6,
+  },
+  quickBadgeText: {
+    color: "white",
+    fontSize: 8,
+    fontWeight: "bold",
+    letterSpacing: 0.5,
   },
   selectedCoffeeTypeCaffeine: {
     color: "#FFE0B2",
