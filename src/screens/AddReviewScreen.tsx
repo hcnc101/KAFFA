@@ -33,7 +33,7 @@
  * @course CS50 Final Project
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -52,6 +52,7 @@ import { ReviewFormData } from "../types/review"; // TypeScript interface for ty
 import { addReview } from "../data/reviews"; // Persistence function for reviews
 import {
   addCoffeeEntry as saveCoffeeEntry,
+  loadCoffeeEntries,
   CoffeeEntry,
 } from "../data/coffeeEntries"; // Persistence function for caffeine tracking
 import RadarChart from "../components/RadarChart"; // Custom SVG visualization component
@@ -404,6 +405,47 @@ const AddReviewScreen = () => {
   // Prevents double-submission while async operations complete
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Controls whether all drink options are shown or just favorites
+  const [showAllDrinks, setShowAllDrinks] = useState(false);
+
+  // User's personal favorites based on their logging history
+  const [userFavorites, setUserFavorites] = useState<string[]>([]);
+  const MIN_LOGS_FOR_FAVORITES = 4; // Need at least 4 logged drinks before showing favorites
+
+  // Load and calculate user's favorite drinks from their history
+  useEffect(() => {
+    const calculateFavorites = async () => {
+      try {
+        const entries = await loadCoffeeEntries();
+
+        // Count how often each drink type is logged
+        const drinkCounts: Record<string, number> = {};
+        entries.forEach((entry) => {
+          const type = entry.type;
+          drinkCounts[type] = (drinkCounts[type] || 0) + 1;
+        });
+
+        // Sort by frequency and get top 4
+        const sortedDrinks = Object.entries(drinkCounts)
+          .sort((a, b) => b[1] - a[1])
+          .map(([name]) => name)
+          .slice(0, 4);
+
+        // Only show favorites if user has logged enough drinks
+        if (
+          entries.length >= MIN_LOGS_FOR_FAVORITES &&
+          sortedDrinks.length >= 2
+        ) {
+          setUserFavorites(sortedDrinks);
+        }
+      } catch (error) {
+        console.log("Could not load favorites:", error);
+      }
+    };
+
+    calculateFavorites();
+  }, []);
+
   /**
    * QUICK LOG FUNCTION
    * ------------------
@@ -716,18 +758,12 @@ const AddReviewScreen = () => {
           - Visual feedback: selected card changes to brown background
         */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Coffee Type</Text>
-          <Text style={styles.sectionSubtitle}>
-            Choose the type of coffee you're drinking (required for caffeine
-            tracking)
-          </Text>
+          <Text style={styles.sectionTitle}>What are you drinking?</Text>
 
-          {/* Coffee items (require full form) */}
-          <Text style={styles.subsectionLabel}>Coffee</Text>
-          <View style={styles.coffeeTypeGrid}>
-            {coffeeTypes
-              .filter((coffee) => coffee.category !== "quick")
-              .map((coffee) => (
+          {/* NEW USERS: Show all drinks in a clean grid */}
+          {userFavorites.length === 0 ? (
+            <View style={styles.coffeeTypeGrid}>
+              {coffeeTypes.map((coffee) => (
                 <TouchableOpacity
                   key={coffee.name}
                   style={[
@@ -736,8 +772,11 @@ const AddReviewScreen = () => {
                       styles.selectedCoffeeTypeOption,
                   ]}
                   onPress={() => {
+                    if (coffee.category === "quick") {
+                      quickLogCaffeine(coffee);
+                      return;
+                    }
                     setSelectedCoffeeType(coffee);
-                    // Auto-set milk type if coffee has a default
                     if (coffee.defaultMilk) {
                       const defaultMilk = milkTypes.find((m) =>
                         m.name
@@ -752,6 +791,7 @@ const AddReviewScreen = () => {
                       }
                     }
                   }}
+                  disabled={isSubmitting}
                 >
                   <Icon
                     name={coffee.icon}
@@ -780,42 +820,170 @@ const AddReviewScreen = () => {
                     ]}
                   >
                     {coffee.caffeine}mg
+                    {coffee.category === "quick" && " ⚡"}
                   </Text>
                 </TouchableOpacity>
               ))}
-          </View>
+            </View>
+          ) : (
+            /* RETURNING USERS: Show their favorites + expandable "more" */
+            <>
+              {/* Your favorites label */}
+              <Text style={styles.favoritesLabel}>Your usual</Text>
 
-          {/* Quick log items (tea, energy drinks - no review form needed) */}
-          <Text style={styles.subsectionLabel}>Quick Log (Tea & Energy)</Text>
-          <Text style={styles.quickLogHint}>
-            Tap to log instantly - no form needed
-          </Text>
-          <View style={styles.coffeeTypeGrid}>
-            {coffeeTypes
-              .filter((coffee) => coffee.category === "quick")
-              .map((item) => (
-                <TouchableOpacity
-                  key={item.name}
-                  style={[styles.coffeeTypeOption, styles.quickLogOption]}
-                  onPress={() => quickLogCaffeine(item)}
-                  disabled={isSubmitting}
-                >
-                  <Icon
-                    name={item.icon}
-                    type="material"
-                    color="#6F4E37"
-                    size={24}
-                  />
-                  <Text style={styles.coffeeTypeText}>{item.name}</Text>
-                  <Text style={styles.coffeeTypeCaffeine}>
-                    {item.caffeine}mg
-                  </Text>
-                  <View style={styles.quickBadge}>
-                    <Text style={styles.quickBadgeText}>TAP TO LOG</Text>
+              <View style={styles.favoritesGrid}>
+                {coffeeTypes
+                  .filter((coffee) => userFavorites.includes(coffee.name))
+                  .sort(
+                    (a, b) =>
+                      userFavorites.indexOf(a.name) -
+                      userFavorites.indexOf(b.name)
+                  )
+                  .map((coffee) => (
+                    <TouchableOpacity
+                      key={coffee.name}
+                      style={[
+                        styles.favoriteOption,
+                        selectedCoffeeType?.name === coffee.name &&
+                          styles.favoriteOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setSelectedCoffeeType(coffee);
+                        if (coffee.defaultMilk) {
+                          const defaultMilk = milkTypes.find((m) =>
+                            m.name
+                              .toLowerCase()
+                              .includes(coffee.defaultMilk.toLowerCase())
+                          );
+                          if (defaultMilk) {
+                            setFormData((prev) => ({
+                              ...prev,
+                              milkType: defaultMilk.name,
+                            }));
+                          }
+                        }
+                      }}
+                    >
+                      <Icon
+                        name={coffee.icon}
+                        type="material"
+                        color={
+                          selectedCoffeeType?.name === coffee.name
+                            ? "white"
+                            : "#6F4E37"
+                        }
+                        size={28}
+                      />
+                      <Text
+                        style={[
+                          styles.favoriteText,
+                          selectedCoffeeType?.name === coffee.name &&
+                            styles.favoriteTextSelected,
+                        ]}
+                      >
+                        {coffee.name}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.favoriteCaffeine,
+                          selectedCoffeeType?.name === coffee.name &&
+                            styles.favoriteCaffeineSelected,
+                        ]}
+                      >
+                        {coffee.caffeine}mg
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+              </View>
+
+              {/* Show more toggle */}
+              <TouchableOpacity
+                style={styles.showMoreButton}
+                onPress={() => setShowAllDrinks(!showAllDrinks)}
+              >
+                <Text style={styles.showMoreText}>
+                  {showAllDrinks ? "Show less" : "More options"}
+                </Text>
+                <Icon
+                  name={showAllDrinks ? "expand-less" : "expand-more"}
+                  type="material"
+                  size={20}
+                  color="#8B4513"
+                />
+              </TouchableOpacity>
+
+              {/* All drinks - collapsible */}
+              {showAllDrinks && (
+                <View style={styles.allDrinksContainer}>
+                  <View style={styles.coffeeTypeGrid}>
+                    {coffeeTypes
+                      .filter((coffee) => !userFavorites.includes(coffee.name))
+                      .map((coffee) => (
+                        <TouchableOpacity
+                          key={coffee.name}
+                          style={[
+                            styles.coffeeTypeOption,
+                            selectedCoffeeType?.name === coffee.name &&
+                              styles.selectedCoffeeTypeOption,
+                          ]}
+                          onPress={() => {
+                            if (coffee.category === "quick") {
+                              quickLogCaffeine(coffee);
+                              return;
+                            }
+                            setSelectedCoffeeType(coffee);
+                            if (coffee.defaultMilk) {
+                              const defaultMilk = milkTypes.find((m) =>
+                                m.name
+                                  .toLowerCase()
+                                  .includes(coffee.defaultMilk.toLowerCase())
+                              );
+                              if (defaultMilk) {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  milkType: defaultMilk.name,
+                                }));
+                              }
+                            }
+                          }}
+                          disabled={isSubmitting}
+                        >
+                          <Icon
+                            name={coffee.icon}
+                            type="material"
+                            color={
+                              selectedCoffeeType?.name === coffee.name
+                                ? "white"
+                                : "#6F4E37"
+                            }
+                            size={24}
+                          />
+                          <Text
+                            style={[
+                              styles.coffeeTypeText,
+                              selectedCoffeeType?.name === coffee.name &&
+                                styles.selectedCoffeeTypeText,
+                            ]}
+                          >
+                            {coffee.name}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.coffeeTypeCaffeine,
+                              selectedCoffeeType?.name === coffee.name &&
+                                styles.selectedCoffeeTypeCaffeine,
+                            ]}
+                          >
+                            {coffee.caffeine}mg
+                            {coffee.category === "quick" && " ⚡"}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
                   </View>
-                </TouchableOpacity>
-              ))}
-          </View>
+                </View>
+              )}
+            </>
+          )}
         </View>
 
         {/* Basic Information */}
@@ -1252,6 +1420,70 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     fontStyle: "italic",
   },
+  favoritesLabel: {
+    fontSize: 13,
+    color: "#8B4513",
+    fontWeight: "600",
+    marginBottom: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  favoritesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginBottom: 16,
+  },
+  favoriteOption: {
+    flex: 1,
+    minWidth: "45%",
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "#FFF8F0",
+    borderWidth: 2,
+    borderColor: "#E8DDD4",
+    alignItems: "center",
+  },
+  favoriteOptionSelected: {
+    backgroundColor: "#8B4513",
+    borderColor: "#6F4E37",
+  },
+  favoriteText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#333",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  favoriteTextSelected: {
+    color: "white",
+  },
+  favoriteCaffeine: {
+    fontSize: 12,
+    color: "#888",
+    marginTop: 4,
+  },
+  favoriteCaffeineSelected: {
+    color: "rgba(255,255,255,0.8)",
+  },
+  showMoreButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  showMoreText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#8B4513",
+    marginRight: 4,
+  },
+  allDrinksContainer: {
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#E8E8E8",
+  },
   inputContainer: {
     marginBottom: 15,
   },
@@ -1570,39 +1802,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#666",
     marginTop: 2,
-  },
-  subsectionLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#8B4513",
-    marginTop: 16,
-    marginBottom: 8,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  quickLogHint: {
-    fontSize: 12,
-    color: "#999",
-    marginBottom: 10,
-    fontStyle: "italic",
-  },
-  quickLogOption: {
-    borderColor: "#C4A484",
-    borderStyle: "dashed",
-    backgroundColor: "#FFF8F0",
-  },
-  quickBadge: {
-    backgroundColor: "#8B4513",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    marginTop: 6,
-  },
-  quickBadgeText: {
-    color: "white",
-    fontSize: 8,
-    fontWeight: "bold",
-    letterSpacing: 0.5,
   },
   selectedCoffeeTypeCaffeine: {
     color: "#FFE0B2",
