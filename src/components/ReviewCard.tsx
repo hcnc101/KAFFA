@@ -80,38 +80,35 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ review, onPress }) => {
         </View>
       )}
 
-      {/* Flavor Profile Chart */}
-      {review.flavour !== undefined &&
-        review.aroma !== undefined &&
-        review.aftertaste !== undefined &&
-        review.body !== undefined &&
-        review.acidity !== undefined &&
-        review.balance !== undefined && (
+      {/* Rating Profile Chart */}
+      {review.taste !== undefined &&
+        review.strength !== undefined &&
+        review.smoothness !== undefined &&
+        review.value !== undefined &&
+        review.orderAgain !== undefined && (
           <View style={styles.chartContainer}>
             <View style={styles.chartHeader}>
               <Icon name="radar" type="material-community" size={16} color={theme.primary} />
-              <Text style={styles.chartLabel}>Flavor Profile</Text>
+              <Text style={styles.chartLabel}>Your Rating</Text>
             </View>
             <RadarChart
               values={[
-                review.flavour,
-                review.aroma,
-                review.aftertaste,
-                review.body,
-                review.acidity,
-                review.balance,
+                review.taste,
+                review.strength,
+                review.smoothness,
+                review.value,
+                review.orderAgain,
               ]}
               labels={[
-                "Flavor",
-                "Aroma",
-                "Aftertaste",
-                "Body",
-                "Acidity",
-                "Balance",
+                "Taste",
+                "Strength",
+                "Smooth",
+                "Value",
+                "Again?",
               ]}
               max={10}
               size={280}
-              caption={`${review.milkType} • Overall: ${review.overall * 10}/100`}
+              caption={`${review.milkType} • Score: ${review.rating}/100`}
             />
           </View>
         )}

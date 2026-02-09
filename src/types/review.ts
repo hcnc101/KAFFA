@@ -9,14 +9,12 @@ export interface Review {
   userId: string;
   imageUrl?: string;
   tags?: string[];
-  // SCA/Hoffmann-style metrics (0-10 scale, displayed as 0-100)
-  flavour: number; // 0-10
-  aroma: number; // 0-10
-  aftertaste: number; // 0-10
-  acidity: number; // 0-10
-  body: number; // 0-10
-  balance: number; // 0-10 (replaces strength)
-  overall: number; // 0-10
+  // Everyday rating metrics (0-10 scale)
+  taste: number; // 0-10: Did it taste good?
+  strength: number; // 0-10: Was it the right strength? (5 = just right)
+  smoothness: number; // 0-10: Smooth vs bitter/harsh
+  value: number; // 0-10: Worth what you paid?
+  orderAgain: number; // 0-10: Would you order it again?
   milkType: string;
   keywords?: string[];
 }
@@ -27,14 +25,12 @@ export interface ReviewFormData {
   origin: string;
   rating: number; // 0-100
   notes: string;
-  // SCA/Hoffmann-style metrics (0-10 scale, displayed as 0-100)
-  flavour: number; // 0-10
-  aroma: number; // 0-10
-  aftertaste: number; // 0-10
-  acidity: number; // 0-10
-  body: number; // 0-10
-  balance: number; // 0-10
-  overall: number; // 0-10
+  // Everyday rating metrics (0-10 scale)
+  taste: number; // 0-10: Did it taste good?
+  strength: number; // 0-10: Was it the right strength? (5 = just right)
+  smoothness: number; // 0-10: Smooth vs bitter/harsh
+  value: number; // 0-10: Worth what you paid?
+  orderAgain: number; // 0-10: Would you order it again?
   milkType: string;
   keywords?: string[];
 }

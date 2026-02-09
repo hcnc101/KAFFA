@@ -7,13 +7,13 @@
  * PURPOSE:
  * This screen serves a DUAL FUNCTION:
  * 1. Logs caffeine intake for the real-time metabolism tracker (HomeScreen)
- * 2. Records detailed coffee reviews using SCA (Specialty Coffee Association) cupping protocol
+ * 2. Records coffee reviews with simple everyday rating attributes
  *
  * KEY FEATURES:
  * - 17 pre-defined coffee types with accurate caffeine values
  * - 8 milk types that affect caffeine absorption rates
- * - Professional 7-attribute cupping score system (SCA standard)
- * - Live radar chart visualization of flavor profile
+ * - Simple 5-attribute rating system (Taste, Strength, Smoothness, Value, Order Again)
+ * - Live radar chart visualization of your rating
  * - Auto-complete suggestions for roasters and origins
  * - Flexible validation (only requires ONE of: name, roaster, or origin)
  *
@@ -383,14 +383,12 @@ const AddReviewScreen = () => {
     origin: "",
     rating: 50, // Legacy field, now calculated from metrics
     notes: "",
-    // SCA CUPPING ATTRIBUTES (all default to 5/10 = neutral)
-    flavour: 5, // Taste quality and complexity
-    aroma: 5, // Fragrance of dry and wet grounds
-    aftertaste: 5, // Lingering taste after swallowing
-    body: 5, // Weight/texture in mouth (mouthfeel)
-    acidity: 5, // Brightness, liveliness (NOT sourness)
-    balance: 5, // Harmony of all attributes together
-    overall: 5, // Subjective overall impression
+    // EVERYDAY RATING ATTRIBUTES (all default to 5/10 = neutral)
+    taste: 5, // Did it taste good?
+    strength: 5, // Was it the right strength? (5 = just right)
+    smoothness: 5, // Smooth vs bitter/harsh
+    value: 5, // Worth what you paid?
+    orderAgain: 5, // Would you order it again?
     milkType: "None",
     keywords: [], // Reserved for future tagging feature
   });
@@ -407,6 +405,9 @@ const AddReviewScreen = () => {
 
   // Controls whether all drink options are shown or just favorites
   const [showAllDrinks, setShowAllDrinks] = useState(false);
+
+  // Controls whether the full review form is expanded (ratings, notes, etc.)
+  const [showReviewDetails, setShowReviewDetails] = useState(false);
 
   // User's personal favorites based on their logging history
   const [userFavorites, setUserFavorites] = useState<string[]>([]);
@@ -585,25 +586,22 @@ const AddReviewScreen = () => {
        *
        * MATH: (sum of 7 metrics / 7) * 10 = 0-100 score
        *
-       * Example: All metrics at 8/10 = (8*7/7)*10 = 80/100
-       * This matches SCA's "specialty grade" threshold of 80+
+       * Example: All metrics at 8/10 = (8*5/5)*10 = 80/100
+       * Uses average of 5 everyday rating attributes
        */
       const overallRating = Math.round(
-        ((formData.flavour +
-          formData.aroma +
-          formData.aftertaste +
-          formData.body +
-          formData.acidity +
-          formData.balance +
-          formData.overall) /
-          7) *
+        ((formData.taste +
+          formData.strength +
+          formData.smoothness +
+          formData.value +
+          formData.orderAgain) /
+          5) *
           10
       );
 
       const reviewData = {
         ...formData, // Spread operator copies all form fields
         rating: overallRating, // Override with calculated rating
-        overall: formData.overall,
       };
 
       // SAVE #1: Store the review in persistent storage
@@ -698,13 +696,11 @@ const AddReviewScreen = () => {
       origin: "",
       rating: 50,
       notes: "",
-      flavour: 5, // Neutral default
-      aroma: 5,
-      aftertaste: 5,
-      body: 5,
-      acidity: 5,
-      balance: 5,
-      overall: 5,
+      taste: 5, // Neutral default
+      strength: 5,
+      smoothness: 5,
+      value: 5,
+      orderAgain: 5,
       milkType: "None",
       keywords: [],
     });
@@ -745,7 +741,7 @@ const AddReviewScreen = () => {
           </View>
           <Text style={styles.headerTitle}>Log Coffee</Text>
           <Text style={styles.headerSubtitle}>
-            Track caffeine & add a review
+            Quick log or add a detailed review
           </Text>
         </View>
 
@@ -986,163 +982,233 @@ const AddReviewScreen = () => {
           )}
         </View>
 
-        {/* Basic Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Coffee Details</Text>
-          <Text style={styles.sectionSubtitle}>
-            Fill in what you know (optional, but helps with reviews)
-          </Text>
+        {/* QUICK LOG SECTION - Only shows when coffee type is selected */}
+        {selectedCoffeeType && (
+          <View style={styles.quickLogSection}>
+            {/* Quick Log Button */}
+            <TouchableOpacity
+              style={styles.quickLogButton}
+              onPress={() => {
+                // Just log the caffeine, no review
+                const selectedMilk =
+                  milkTypes.find((m) => m.name === formData.milkType) ||
+                  milkTypes[0];
+                const now = new Date();
+                const effectiveCaffeine = Math.round(
+                  selectedCoffeeType.caffeine *
+                    (1 - selectedMilk.caffeineReduction)
+                );
+                const coffeeEntry: CoffeeEntry = {
+                  id: Date.now().toString(),
+                  type: selectedCoffeeType.name,
+                  volume: selectedCoffeeType.volume,
+                  caffeine: selectedCoffeeType.caffeine,
+                  effectiveCaffeine,
+                  timestamp: now,
+                  peakTime: new Date(
+                    now.getTime() + (45 + selectedMilk.peakDelay) * 60000
+                  ),
+                  halfLifeTime: new Date(now.getTime() + 5.5 * 60 * 60000),
+                  dateKey: getDateKey(now),
+                  milkType: formData.milkType,
+                };
+                saveCoffeeEntry(coffeeEntry);
+                DeviceEventEmitter.emit("coffeeEntryAdded", coffeeEntry);
+                Alert.alert(
+                  "☕ Logged!",
+                  `${selectedCoffeeType.name} (${effectiveCaffeine}mg) added to your tracker.`,
+                  [{ text: "OK" }]
+                );
+                setSelectedCoffeeType(null);
+              }}
+              disabled={isSubmitting}
+            >
+              <Icon name="check" type="material" color="white" size={22} />
+              <Text style={styles.quickLogButtonText}>Log Coffee</Text>
+            </TouchableOpacity>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Coffee Name</Text>
-            <TextInput
-              style={styles.textInput}
-              value={formData.coffeeName}
-              onChangeText={(text) => updateField("coffeeName", text)}
-              placeholder="e.g., Ethiopian Yirgacheffe"
-              placeholderTextColor="#999"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Roaster</Text>
-            <View style={styles.autocompleteContainer}>
-              <TextInput
-                style={styles.textInput}
-                value={formData.roaster}
-                onChangeText={(text) => updateField("roaster", text)}
-                onFocus={() => setShowRoasterSuggestions(true)}
-                onBlur={() =>
-                  setTimeout(() => setShowRoasterSuggestions(false), 200)
-                }
-                placeholder="e.g., Stumptown Coffee"
-                placeholderTextColor="#999"
+            {/* Expand for full review */}
+            <TouchableOpacity
+              style={styles.expandReviewButton}
+              onPress={() => setShowReviewDetails(!showReviewDetails)}
+            >
+              <Text style={styles.expandReviewText}>
+                {showReviewDetails
+                  ? "Hide review details"
+                  : "Add review details"}
+              </Text>
+              <Icon
+                name={showReviewDetails ? "expand-less" : "expand-more"}
+                type="material"
+                size={20}
+                color="#8B4513"
               />
-              {showRoasterSuggestions && (
-                <View style={styles.suggestions}>
-                  {popularRoasters
-                    .filter((r) =>
-                      r.toLowerCase().includes(formData.roaster.toLowerCase())
-                    )
-                    .slice(0, 5)
-                    .map((roaster) => (
-                      <TouchableOpacity
-                        key={roaster}
-                        style={styles.suggestionItem}
-                        onPress={() => {
-                          updateField("roaster", roaster);
-                          setShowRoasterSuggestions(false);
-                        }}
-                      >
-                        <Text style={styles.suggestionText}>{roaster}</Text>
-                      </TouchableOpacity>
-                    ))}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* EXPANDABLE REVIEW DETAILS */}
+        {showReviewDetails && selectedCoffeeType && (
+          <>
+            {/* Basic Information */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Coffee Details</Text>
+              <Text style={styles.sectionSubtitle}>
+                Fill in what you know (optional, but helps with reviews)
+              </Text>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Coffee Name</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={formData.coffeeName}
+                  onChangeText={(text) => updateField("coffeeName", text)}
+                  placeholder="e.g., Ethiopian Yirgacheffe"
+                  placeholderTextColor="#999"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Roaster</Text>
+                <View style={styles.autocompleteContainer}>
+                  <TextInput
+                    style={styles.textInput}
+                    value={formData.roaster}
+                    onChangeText={(text) => updateField("roaster", text)}
+                    onFocus={() => setShowRoasterSuggestions(true)}
+                    onBlur={() =>
+                      setTimeout(() => setShowRoasterSuggestions(false), 200)
+                    }
+                    placeholder="e.g., Stumptown Coffee"
+                    placeholderTextColor="#999"
+                  />
+                  {showRoasterSuggestions && (
+                    <View style={styles.suggestions}>
+                      {popularRoasters
+                        .filter((r) =>
+                          r
+                            .toLowerCase()
+                            .includes(formData.roaster.toLowerCase())
+                        )
+                        .slice(0, 5)
+                        .map((roaster) => (
+                          <TouchableOpacity
+                            key={roaster}
+                            style={styles.suggestionItem}
+                            onPress={() => {
+                              updateField("roaster", roaster);
+                              setShowRoasterSuggestions(false);
+                            }}
+                          >
+                            <Text style={styles.suggestionText}>{roaster}</Text>
+                          </TouchableOpacity>
+                        ))}
+                    </View>
+                  )}
                 </View>
-              )}
-            </View>
-          </View>
+              </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Origin</Text>
-            <View style={styles.autocompleteContainer}>
-              <TextInput
-                style={styles.textInput}
-                value={formData.origin}
-                onChangeText={(text) => updateField("origin", text)}
-                onFocus={() => setShowOriginSuggestions(true)}
-                onBlur={() =>
-                  setTimeout(() => setShowOriginSuggestions(false), 200)
-                }
-                placeholder="e.g., Ethiopia"
-                placeholderTextColor="#999"
-              />
-              {showOriginSuggestions && (
-                <View style={styles.suggestions}>
-                  {popularOrigins
-                    .filter((o) =>
-                      o.toLowerCase().includes(formData.origin.toLowerCase())
-                    )
-                    .slice(0, 5)
-                    .map((origin) => (
-                      <TouchableOpacity
-                        key={origin}
-                        style={styles.suggestionItem}
-                        onPress={() => {
-                          updateField("origin", origin);
-                          setShowOriginSuggestions(false);
-                        }}
-                      >
-                        <Text style={styles.suggestionText}>{origin}</Text>
-                      </TouchableOpacity>
-                    ))}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Origin</Text>
+                <View style={styles.autocompleteContainer}>
+                  <TextInput
+                    style={styles.textInput}
+                    value={formData.origin}
+                    onChangeText={(text) => updateField("origin", text)}
+                    onFocus={() => setShowOriginSuggestions(true)}
+                    onBlur={() =>
+                      setTimeout(() => setShowOriginSuggestions(false), 200)
+                    }
+                    placeholder="e.g., Ethiopia"
+                    placeholderTextColor="#999"
+                  />
+                  {showOriginSuggestions && (
+                    <View style={styles.suggestions}>
+                      {popularOrigins
+                        .filter((o) =>
+                          o
+                            .toLowerCase()
+                            .includes(formData.origin.toLowerCase())
+                        )
+                        .slice(0, 5)
+                        .map((origin) => (
+                          <TouchableOpacity
+                            key={origin}
+                            style={styles.suggestionItem}
+                            onPress={() => {
+                              updateField("origin", origin);
+                              setShowOriginSuggestions(false);
+                            }}
+                          >
+                            <Text style={styles.suggestionText}>{origin}</Text>
+                          </TouchableOpacity>
+                        ))}
+                    </View>
+                  )}
                 </View>
-              )}
+              </View>
             </View>
-          </View>
-        </View>
 
-        {/* Milk Type Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Milk Type</Text>
-          <View style={styles.milkTypeContainer}>
-            {milkTypes.map((milk) => (
-              <TouchableOpacity
-                key={milk.name}
-                style={[
-                  styles.milkTypeOption,
-                  formData.milkType === milk.name && styles.selectedMilkType,
-                ]}
-                onPress={() => selectMilkType(milk.name)}
-              >
-                <Text
-                  style={[
-                    styles.milkTypeText,
-                    formData.milkType === milk.name &&
-                      styles.selectedMilkTypeText,
-                  ]}
-                >
-                  {milk.displayName}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+            {/* Milk Type Selection */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Milk Type</Text>
+              <View style={styles.milkTypeContainer}>
+                {milkTypes.map((milk) => (
+                  <TouchableOpacity
+                    key={milk.name}
+                    style={[
+                      styles.milkTypeOption,
+                      formData.milkType === milk.name &&
+                        styles.selectedMilkType,
+                    ]}
+                    onPress={() => selectMilkType(milk.name)}
+                  >
+                    <Text
+                      style={[
+                        styles.milkTypeText,
+                        formData.milkType === milk.name &&
+                          styles.selectedMilkTypeText,
+                      ]}
+                    >
+                      {milk.displayName}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
 
-        {/* 
-          SCA CUPPING SCORE SECTION
-          =========================
+            {/* 
+          EVERYDAY RATING SECTION
+          =======================
           
-          WHAT IS SCA?
-          The Specialty Coffee Association is the global authority on
-          coffee quality standards. Their cupping protocol is used by:
-          - Professional coffee buyers
-          - Competition judges
-          - Quality control at roasteries
+          Simple, practical ratings for regular coffee drinkers.
+          Not everyone needs professional cupping terminology!
           
-          SCORING SCALE:
-          - 0-10 internal (for easier UI)
-          - Displayed as 0-100 to match SCA standards
-          - 80+ = Specialty Grade
-          - 85+ = Excellent
-          - 90+ = Outstanding
+          THE 5 ATTRIBUTES:
+          - Taste: Did it taste good overall?
+          - Strength: Too weak / just right / too strong?
+          - Smoothness: Harsh/bitter or smooth?
+          - Value: Worth what you paid?
+          - Order Again: Would you get this again?
           
-          THE 7 ATTRIBUTES:
-          Based on James Hoffmann's simplified version of SCA protocol
+          SCORING:
+          Each attribute is 0-10, where 5 is neutral.
+          Overall score is the average × 10 (so 0-100).
         */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>SCA Cupping Score</Text>
-          <Text style={styles.sectionSubtitle}>
-            Rate each attribute on a 0-10 scale (displayed as 0-100)
-          </Text>
-          <View style={styles.scaInfoBox}>
-            <Icon name="info" size={16} color="#6F4E37" />
-            <Text style={styles.scaInfoText}>
-              Based on the Specialty Coffee Association (SCA) cupping protocol.
-              Coffees scoring 80+ are considered specialty grade.
-            </Text>
-          </View>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Rate Your Coffee</Text>
+              <Text style={styles.sectionSubtitle}>
+                Quick ratings to remember what you thought
+              </Text>
+              <View style={styles.scaInfoBox}>
+                <Icon name="lightbulb-outline" size={16} color="#6F4E37" />
+                <Text style={styles.scaInfoText}>
+                  5 is neutral. Go higher if you loved it, lower if not. Your
+                  overall score is the average of all ratings.
+                </Text>
+              </View>
 
-          {/* 
+              {/* 
             RATING METRICS ARRAY
             --------------------
             Each metric includes:
@@ -1151,189 +1217,169 @@ const AddReviewScreen = () => {
             - icon: Material Design icon
             - description: Explains what to evaluate
           */}
-          {[
-            {
-              key: "flavour",
-              label: "Flavor",
-              icon: "restaurant",
-              description:
-                "The intensity and quality of the coffee's taste profile",
-            },
-            {
-              key: "aroma",
-              label: "Aroma",
-              icon: "local-florist",
-              description:
-                "The fragrance of the coffee, both dry and wet grounds",
-            },
-            {
-              key: "aftertaste",
-              label: "Aftertaste",
-              icon: "history",
-              description: "The lingering taste that remains after swallowing",
-            },
-            {
-              key: "acidity",
-              label: "Acidity",
-              icon: "whatshot",
-              description:
-                "The bright, tangy quality that gives coffee liveliness",
-            },
-            {
-              key: "body",
-              label: "Body",
-              icon: "fitness-center",
-              description: "The weight and texture of the coffee in your mouth",
-            },
-            {
-              key: "balance",
-              label: "Balance",
-              icon: "tune",
-              description: "How harmoniously all the flavors work together",
-            },
-            {
-              key: "overall",
-              label: "Overall",
-              icon: "star",
-              description:
-                "Your overall impression and enjoyment of this coffee",
-            },
-          ].map((metric) => (
-            <View key={metric.key} style={styles.hoffmannRatingRow}>
-              <View style={styles.hoffmannRatingHeader}>
-                <View style={styles.hoffmannRatingLabel}>
-                  <Icon
-                    name={metric.icon}
-                    size={20}
-                    color="#6F4E37"
-                    style={styles.ratingIcon}
-                  />
-                  <View style={styles.hoffmannLabelTextContainer}>
-                    <Text style={styles.hoffmannRatingLabelText}>
-                      {metric.label}
-                    </Text>
-                    <Text style={styles.hoffmannDescription}>
-                      {metric.description}
+              {[
+                {
+                  key: "taste",
+                  label: "Taste",
+                  icon: "thumb-up",
+                  description: "Did it taste good overall?",
+                },
+                {
+                  key: "strength",
+                  label: "Strength",
+                  icon: "fitness-center",
+                  description:
+                    "Too weak (1) → Just right (5) → Too strong (10)",
+                },
+                {
+                  key: "smoothness",
+                  label: "Smoothness",
+                  icon: "spa",
+                  description: "Harsh/bitter (1) → Smooth (10)",
+                },
+                {
+                  key: "value",
+                  label: "Value",
+                  icon: "attach-money",
+                  description: "Was it worth what you paid?",
+                },
+                {
+                  key: "orderAgain",
+                  label: "Order Again?",
+                  icon: "replay",
+                  description: "Would you get this again?",
+                },
+              ].map((metric) => (
+                <View key={metric.key} style={styles.hoffmannRatingRow}>
+                  <View style={styles.hoffmannRatingHeader}>
+                    <View style={styles.hoffmannRatingLabel}>
+                      <Icon
+                        name={metric.icon}
+                        size={20}
+                        color="#6F4E37"
+                        style={styles.ratingIcon}
+                      />
+                      <View style={styles.hoffmannLabelTextContainer}>
+                        <Text style={styles.hoffmannRatingLabelText}>
+                          {metric.label}
+                        </Text>
+                        <Text style={styles.hoffmannDescription}>
+                          {metric.description}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.hoffmannScore}>
+                      {(formData[
+                        metric.key as keyof ReviewFormData
+                      ] as number) * 10}
                     </Text>
                   </View>
+                  <View style={styles.sliderContainer}>
+                    <View style={styles.sliderTrack}>
+                      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+                        <TouchableOpacity
+                          key={value}
+                          style={[
+                            styles.sliderTick,
+                            (formData[
+                              metric.key as keyof ReviewFormData
+                            ] as number) >= value && styles.sliderTickActive,
+                          ]}
+                          onPress={() =>
+                            updateRating(
+                              metric.key as keyof ReviewFormData,
+                              value
+                            )
+                          }
+                        />
+                      ))}
+                    </View>
+                    <View style={styles.sliderLabels}>
+                      <Text style={styles.sliderLabel}>0</Text>
+                      <Text style={styles.sliderLabel}>5</Text>
+                      <Text style={styles.sliderLabel}>10</Text>
+                    </View>
+                  </View>
                 </View>
-                <Text style={styles.hoffmannScore}>
-                  {(formData[metric.key as keyof ReviewFormData] as number) *
-                    10}
-                </Text>
-              </View>
-              <View style={styles.sliderContainer}>
-                <View style={styles.sliderTrack}>
-                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
-                    <TouchableOpacity
-                      key={value}
-                      style={[
-                        styles.sliderTick,
-                        (formData[
-                          metric.key as keyof ReviewFormData
-                        ] as number) >= value && styles.sliderTickActive,
-                      ]}
-                      onPress={() =>
-                        updateRating(metric.key as keyof ReviewFormData, value)
-                      }
-                    />
-                  ))}
-                </View>
-                <View style={styles.sliderLabels}>
-                  <Text style={styles.sliderLabel}>0</Text>
-                  <Text style={styles.sliderLabel}>5</Text>
-                  <Text style={styles.sliderLabel}>10</Text>
-                </View>
-              </View>
-            </View>
-          ))}
+              ))}
 
-          {/* 
+              {/* 
             RADAR CHART VISUALIZATION
             =========================
             
             WHY A RADAR CHART?
-            - Creates a unique "flavor fingerprint" for each coffee
-            - Users can instantly compare shape profiles
-            - Visual learners understand balance at a glance
+            - Creates a unique visual "fingerprint" for each coffee
+            - Users can instantly compare ratings across attributes
+            - Visual learners understand the overall picture at a glance
             
             LIVE UPDATES:
             The chart re-renders whenever formData changes
             React's diffing algorithm only updates what changed
             
-            CUSTOM COMPONENT:
-            Built from scratch using react-native-svg because:
-            - No good radar chart libraries for React Native
-            - Needed custom styling to match app theme
-            - Required specific label positioning logic
-            
             PROPS EXPLAINED:
-            - values: Array of 6 rating values (0-10)
-            - labels: Array of 6 attribute names
+            - values: Array of 5 rating values (0-10)
+            - labels: Array of 5 attribute names
             - max: Maximum value (10) for scaling
             - size: Pixel dimensions of the chart
             - caption: Helper text below chart
           */}
-          <View style={styles.radarContainer}>
-            <Text style={styles.radarTitle}>Flavor Profile</Text>
-            <RadarChart
-              values={[
-                formData.flavour,
-                formData.aroma,
-                formData.aftertaste,
-                formData.body,
-                formData.acidity,
-                formData.balance,
-              ]}
-              labels={[
-                "Flavor",
-                "Aroma",
-                "Aftertaste",
-                "Body",
-                "Acidity",
-                "Balance",
-              ]}
-              max={10}
-              size={320}
-              caption="Live preview of your coffee's flavor profile"
-            />
-          </View>
-        </View>
+              <View style={styles.radarContainer}>
+                <Text style={styles.radarTitle}>Your Rating</Text>
+                <RadarChart
+                  values={[
+                    formData.taste,
+                    formData.strength,
+                    formData.smoothness,
+                    formData.value,
+                    formData.orderAgain,
+                  ]}
+                  labels={["Taste", "Strength", "Smooth", "Value", "Again?"]}
+                  max={10}
+                  size={320}
+                  caption="How you rated this coffee"
+                />
+              </View>
+            </View>
 
-        {/* Tasting Notes */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tasting Notes</Text>
-          <TextInput
-            style={styles.notesInput}
-            value={formData.notes}
-            onChangeText={(text) => updateField("notes", text)}
-            placeholder="Describe the flavors, aromas, and your overall experience..."
-            placeholderTextColor="#999"
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
-        </View>
+            {/* Tasting Notes */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Tasting Notes</Text>
+              <TextInput
+                style={styles.notesInput}
+                value={formData.notes}
+                onChangeText={(text) => updateField("notes", text)}
+                placeholder="Describe the flavors, aromas, and your overall experience..."
+                placeholderTextColor="#999"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
 
-        {/* Submit Button */}
-        <View style={styles.buttonContainer}>
-          <Button
-            title={isSubmitting ? "Logging Coffee..." : "Log Coffee"}
-            onPress={submitReview}
-            disabled={isSubmitting || !selectedCoffeeType}
-            buttonStyle={styles.submitButton}
-            titleStyle={styles.submitButtonText}
-            loading={isSubmitting}
-          />
+            {/* Submit Button */}
+            <View style={styles.buttonContainer}>
+              <Button
+                title={isSubmitting ? "Saving..." : "Save Review & Log"}
+                onPress={submitReview}
+                disabled={isSubmitting || !selectedCoffeeType}
+                buttonStyle={styles.submitButton}
+                titleStyle={styles.submitButtonText}
+                loading={isSubmitting}
+              />
 
-          <Button
-            title="Reset Form"
-            onPress={resetForm}
-            type="outline"
-            buttonStyle={styles.resetButton}
-            titleStyle={styles.resetButtonText}
-          />
-        </View>
+              <Button
+                title="Cancel"
+                onPress={() => {
+                  setShowReviewDetails(false);
+                  resetForm();
+                }}
+                type="outline"
+                buttonStyle={styles.resetButton}
+                titleStyle={styles.resetButtonText}
+              />
+            </View>
+          </>
+        )}
 
         <View style={styles.bottomPadding} />
       </ScrollView>
@@ -1457,6 +1503,37 @@ const styles = StyleSheet.create({
   },
   favoriteTextSelected: {
     color: "white",
+  },
+  quickLogSection: {
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  quickLogButton: {
+    backgroundColor: "#8B4513",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  quickLogButtonText: {
+    color: "white",
+    fontSize: 17,
+    fontWeight: "600",
+  },
+  expandReviewButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  expandReviewText: {
+    fontSize: 14,
+    color: "#8B4513",
+    fontWeight: "500",
   },
   favoriteCaffeine: {
     fontSize: 12,
